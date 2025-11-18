@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category }} - Wisdom Blog{% endblock %}
+
+{% block content %}
+<div class="category-page">
+    <!-- Enhanced Category Header -->
+    <div class="category-hero">
+        <div class="category-hero-content">
+            <div class="category-icon">
+                {% if category == 'Spiritual' %}
+                <i class="fas fa-pray"></i>
+                {% elif category == 'Esoteric Science' %}
+                <i class="fas fa-magic"></i>
+                {% elif category == 'Science and Tech' %}
+                <i class="fas fa-rocket"></i>
+                {% elif category == 'Indian Culture' %}
+                <i class="fas fa-om"></i>
+                {% elif category == 'AboutMe' %}
+                <i class="fas fa-user"></i>
+                {% else %}
+                <i class="fas fa-folder"></i>
+                {% endif %}
+            </div>
+            <h1>{{ category }}</h1>
+            <p class="category-description">
+                {% if category == 'Spiritual' %}
+                Explore spiritual wisdom, enlightenment, and inner transformation
+                {% elif category == 'Esoteric Science' %}
+                Discover hidden knowledge and ancient mysteries
+                {% elif category == 'Science and Tech' %}
+                Latest advancements in technology and scientific discoveries
+                {% elif category == 'Indian Culture' %}
+                Rich heritage, traditions, and cultural insights
+                {% elif category == 'AboutMe' %}
+                Personal journey and philosophical perspectives
+                {% else %}
+                Explore all posts in this category
+                {% endif %}
+            </p>
+            <div class="category-stats">
+                <span class="stat"><i class="fas fa-newspaper"></i> {{ posts|length }} Posts</span>
+                <span class="stat"><i class="fas fa-clock"></i> Updated Regularly</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Posts Grid -->
+    <div class="category-content">
+        {% if posts %}
+        <div class="posts-grid-enhanced">
+            {% for post in posts %}
+            <article class="post-card-enhanced">
+                {% if post['image_path'] %}
+                <div class="post-image-enhanced">
+                    <img src="{{ url_for('static', filename=post['image_path']) }}" alt="{{ post['title'] }}">
+                    <div class="post-category-badge">{{ post['category'] }}</div>
+                </div>
+                {% else %}
+                <div class="post-image-enhanced no-image">
+                    <div class="placeholder-image">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="post-category-badge">{{ post['category'] }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="post-content-enhanced">
+                    <h3><a href="{{ url_for('view_post', post_id=post['id']) }}">{{ post['title'] }}</a></h3>
+                    <p class="post-excerpt">{{ post['content'][:120] }}{% if post['content']|length > 120 %}...{% endif %}</p>
+                    
+                    <div class="post-meta-enhanced">
+                        <div class="author-info">
+                            <i class="fas fa-user"></i>
+                            <span>{{ post['username'] }}</span>
+                        </div>
+                        <div class="date-info">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ post['created_at'][:10] }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="post-actions-enhanced">
+                        <a href="{{ url_for('view_post', post_id=post['id']) }}" class="btn-read-more">
+                            Read More <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-posts-enhanced">
+            <div class="no-posts-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h3>No posts yet in {{ category }}</h3>
+            <p>Check back soon for new content, or explore other categories.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Browse All Categories</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
