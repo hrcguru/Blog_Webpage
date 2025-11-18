@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Wisdom Blog{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">Welcome to Wisdom Blog</h1>
+                <p class="hero-subtitle">Explore fascinating topics across science, technology, culture, and spirituality. Discover ancient wisdom and modern insights.</p>
+                {% if not session.user_id %}
+                <div class="hero-buttons">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">
+                        <i class="fas fa-user-plus"></i>
+                        Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary btn-large">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </a>
+                </div>
+                {% else %}
+                <div class="welcome-message">
+                    <p class="welcome-text">Welcome back, <strong>{{ session.username }}</strong>! Ready to explore new knowledge?</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="hero-visual">
+                <div class="floating-icons">
+                    <i class="icon-1 fas fa-atom"></i>
+                    <i class="icon-2 fas fa-yin-yang"></i>
+                    <i class="icon-3 fas fa-book"></i>
+                    <i class="icon-4 fas fa-globe-asia"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="categories-section section-padding">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Explore Categories</h2>
+            <p class="section-subtitle">Dive into diverse topics that expand your knowledge and perspective</p>
+        </div>
+        
+        <!-- Animated Flash Cards -->
+        <div class="flashcards-container">
+            <div class="flashcards-grid">
+                <!-- Esoteric Science Card -->
+                <div class="flashcard" data-category="esoteric">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <img src="{{ url_for('static', filename='images/kundali.jpg') }}" alt="Esoteric Science">
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-magic"></i>
+                                </div>
+                                <h3 class="flashcard-title">Esoteric Science</h3>
+                                <p class="flashcard-description">Ancient wisdom and mystical traditions</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>Esoteric Science</h3>
+                                <p>Explore ancient wisdom, hidden knowledge, astrology, numerology, and mystical traditions that have guided civilizations for centuries.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Ancient Wisdom</li>
+                                    <li><i class="fas fa-star"></i> Mystical Traditions</li>
+                                    <li><i class="fas fa-star"></i> Hidden Knowledge</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Science & Tech Card -->
+                <div class="flashcard" data-category="sci-tech">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <img src="{{ url_for('static', filename='images/SciTech.jpg') }}" alt="Science & Technology">
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                                <h3 class="flashcard-title">Science & Tech</h3>
+                                <p class="flashcard-description">Modern innovations and discoveries</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>Science & Technology</h3>
+                                <p>Dive into the latest scientific discoveries, technological innovations, AI advancements, and future technologies shaping our world.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Latest Innovations</li>
+                                    <li><i class="fas fa-star"></i> AI & Technology</li>
+                                    <li><i class="fas fa-star"></i> Scientific Research</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='Science and Tech') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indian Culture Card -->
+                <div class="flashcard" data-category="indian-culture">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <img src="{{ url_for('static', filename='images/IndianArc.PNG') }}" alt="Indian Culture">
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-om"></i>
+                                </div>
+                                <h3 class="flashcard-title">Indian Culture</h3>
+                                <p class="flashcard-description">Rich heritage and traditions</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>Indian Culture</h3>
+                                <p>Discover the rich heritage, ancient traditions, spiritual practices, and cultural wisdom of India's diverse and profound civilization.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Ancient Heritage</li>
+                                    <li><i class="fas fa-star"></i> Spiritual Practices</li>
+                                    <li><i class="fas fa-star"></i> Cultural Wisdom</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='Indian Culture') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UPSC Card -->
+                <div class="flashcard" data-category="upsc">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <img src="{{ url_for('static', filename='images/UPSC.jpg') }}" alt="UPSC Preparation">
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <h3 class="flashcard-title">UPSC</h3>
+                                <p class="flashcard-description">Civil services preparation</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>UPSC Preparation</h3>
+                                <p>Comprehensive guidance, study materials, strategy insights, and expert tips for UPSC civil services examination preparation.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Exam Strategy</li>
+                                    <li><i class="fas fa-star"></i> Study Materials</li>
+                                    <li><i class="fas fa-star"></i> Expert Guidance</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='UPSC') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spiritual Card -->
+                <div class="flashcard" data-category="spiritual">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <img src="{{ url_for('static', filename='images/Spritual.jpg') }}" alt="Spiritual Wisdom">
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-pray"></i>
+                                </div>
+                                <h3 class="flashcard-title">Spiritual</h3>
+                                <p class="flashcard-description">Enlightenment and self-discovery</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>Spiritual Wisdom</h3>
+                                <p>Embark on a journey of self-discovery, meditation practices, spiritual enlightenment, and inner peace through ancient and modern teachings.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Meditation</li>
+                                    <li><i class="fas fa-star"></i> Self-Discovery</li>
+                                    <li><i class="fas fa-star"></i> Inner Peace</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='Spiritual') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About Me Card -->
+                <div class="flashcard" data-category="about">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="flashcard-image">
+                                <div class="flashcard-placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="flashcard-overlay"></div>
+                            </div>
+                            <div class="flashcard-content">
+                                <div class="flashcard-icon">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <h3 class="flashcard-title">About Me</h3>
+                                <p class="flashcard-description">Personal journey and insights</p>
+                                <div class="flashcard-hint">
+                                    <i class="fas fa-hand-point-up"></i>
+                                    Click to explore
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="flashcard-back-content">
+                                <h3>About Me</h3>
+                                <p>Get to know the author's personal journey, experiences, insights, and the inspiration behind creating this knowledge platform.</p>
+                                <ul class="flashcard-features">
+                                    <li><i class="fas fa-star"></i> Personal Journey</li>
+                                    <li><i class="fas fa-star"></i> Experiences</li>
+                                    <li><i class="fas fa-star"></i> Insights</li>
+                                </ul>
+                                <a href="{{ url_for('category_posts', category_name='AboutMe') }}" class="btn btn-primary flashcard-btn">
+                                    Explore Category
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if session.user_id %}
+<section class="recent-posts-section section-padding bg-light">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Recent Posts</h2>
+            <p class="section-subtitle">Latest insights and knowledge shared by our community</p>
+        </div>
+        
+        {% if posts %}
+        <div class="posts-grid">
+            {% for post in posts %}
+            <article class="post-card">
+                {% if post['image_path'] %}
+                <div class="post-image">
+                    <img src="{{ get_image_url(post['image_path']) }}" alt="{{ post['title'] }}" loading="lazy">
+                    <div class="post-category-badge">{{ post['category'] }}</div>
+                </div>
+                {% else %}
+                <div class="post-image placeholder">
+                    <div class="placeholder-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="post-category-badge">{{ post['category'] }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="post-content">
+                    <h3 class="post-title">
+                        <a href="{{ url_for('view_post', post_id=post['id']) }}">{{ post['title'] }}</a>
+                    </h3>
+                    <p class="post-excerpt">
+                        {{ post['content']|striptags|truncate(120) }}
+                    </p>
+                    <div class="post-meta">
+                        <div class="post-author">
+                            <i class="fas fa-user"></i>
+                            <span>{{ post['username'] }}</span>
+                        </div>
+                        <div class="post-date">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ format_date(post['created_at']) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        
+        <div class="section-footer">
+            <a href="{{ url_for('admin_dashboard') if session.is_admin else '#' }}" class="btn btn-outline">
+                <i class="fas fa-book-open"></i>
+                View All Posts
+            </a>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-feather"></i>
+            </div>
+            <h3 class="empty-title">No Posts Yet</h3>
+            <p class="empty-description">Be the first to share knowledge and insights with our community</p>
+            {% if session.is_admin %}
+            <a href="{{ url_for('create_post') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Create First Post
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% else %}
+<section class="auth-required-section section-padding">
+    <div class="container">
+        <div class="auth-message-card">
+            <div class="auth-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2 class="auth-title">Content Locked</h2>
+            <p class="auth-description">Join our community of knowledge seekers to access all blog posts and exclusive content</p>
+            <div class="auth-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-user-plus"></i>
+                    Register Now
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary btn-large">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login to Account
+                </a>
+            </div>
+            <div class="auth-features">
+                <div class="feature">
+                    <i class="fas fa-book"></i>
+                    <span>Access All Posts</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-comments"></i>
+                    <span>Join Discussions</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-bell"></i>
+                    <span>Get Updates</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Flashcard animation
+    const flashcards = document.querySelectorAll('.flashcard');
+    
+    flashcards.forEach(card => {
+        card.addEventListener('click', function() {
+            this.classList.toggle('flipped');
+        });
+        
+        // Add hover effects
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-10px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('flipped')) {
+                this.style.transform = 'translateY(0) scale(1)';
+            }
+        });
+    });
+    
+    // Auto-rotate cards for demonstration
+    let currentCard = 0;
+    function autoRotateCards() {
+        flashcards.forEach(card => card.classList.remove('flipped'));
+        
+        if (currentCard < flashcards.length) {
+            flashcards[currentCard].classList.add('flipped');
+            currentCard++;
+        } else {
+            currentCard = 0;
+        }
+    }
+    
+    // Start auto-rotation after 5 seconds
+    setTimeout(() => {
+        setInterval(autoRotateCards, 3000);
+    }, 5000);
+});
+</script>
+{% endblock %}

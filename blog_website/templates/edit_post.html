@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Post - Wisdom Blog{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h1><i class="fas fa-edit"></i> Edit Post</h1>
+            <p>Update your post content and image</p>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" class="post-form" id="postForm">
+            <div class="form-group">
+                <label for="title"><i class="fas fa-heading"></i> Post Title</label>
+                <input type="text" id="title" name="title" value="{{ post['title'] }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="category"><i class="fas fa-folder"></i> Category</label>
+                <select id="category" name="category" required>
+                    <option value="AboutMe" {% if post['category'] == 'AboutMe' %}selected{% endif %}>About Me</option>
+                    <option value="Esoteric Science" {% if post['category'] == 'Esoteric Science' %}selected{% endif %}>Esoteric Science</option>
+                    <option value="Science and Tech" {% if post['category'] == 'Science and Tech' %}selected{% endif %}>Science and Tech</option>
+                    <option value="Indian Culture" {% if post['category'] == 'Indian Culture' %}selected{% endif %}>Indian Culture</option>
+                    <option value="UPSC" {% if post['category'] == 'UPSC' %}selected{% endif %}>UPSC</option>
+                    <option value="Spiritual" {% if post['category'] == 'Spiritual' %}selected{% endif %}>Spiritual</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="image"><i class="fas fa-image"></i> Featured Image</label>
+
+                {% if post['image_path'] %}
+                <div class="current-image">
+                    <p><strong>Current Image:</strong></p>
+                    <div class="image-preview">
+                        <img src="{{ url_for('static', filename=post['image_path']) }}" alt="Current image">
+                        <div class="image-actions">
+                            <label class="btn btn-sm btn-warning">
+                                <input type="checkbox" name="remove_image" value="yes" hidden>
+                                <i class="fas fa-trash"></i> Remove Image
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- File Upload New Image -->
+                <div class="file-upload-container">
+                    <input type="file" id="image" name="image" accept="image/*" class="file-input">
+                    
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>{% if post['image_path'] %}Change Image{% else %}Upload Image{% endif %}</p>
+                        <span>PNG, JPG, JPEG, GIF (Max 5MB)</span>
+                    </div>
+                </div>
+
+                <!-- Preview New Image -->
+                <div class="image-preview" id="imagePreview" style="display:none;">
+                    <img id="previewImageTag" src="#" alt="Preview">
+                    <button type="button" class="btn-remove-image" id="removeImageBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <small>Recommended size: 1200x600px for best display</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="content"><i class="fas fa-file-alt"></i> Content</label>
+                <textarea id="content" name="content" rows="15" required>{{ post['content'] }}</textarea>
+                <div class="character-count">
+                    <span id="charCount">{{ post['content']|length }}</span> characters
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save"></i> Update Post
+                </button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <a href="{{ url_for('view_post', post_id=post['id']) }}" class="btn btn-info">
+                    <i class="fas fa-eye"></i> View Post
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const fileInput = document.getElementById("image");
+    const fileUploadArea = document.getElementById("fileUploadArea");
+    const imagePreview = document.getElementById("imagePreview");
+    const previewImageTag = document.getElementById("previewImageTag");
+    const removeImageBtn = document.getElementById("removeImageBtn");
+    const charCount = document.getElementById("charCount");
+
+    // ⭐ FIXED PREVIEW FUNCTION
+    function showPreview(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Image must be under 5MB");
+                input.value = "";
+                return;
+            }
+
+            const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+            if (!validTypes.includes(file.type)) {
+                alert("Invalid file type");
+                input.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewImageTag.src = e.target.result;
+                imagePreview.style.display = "block";
+                fileUploadArea.style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    fileInput.addEventListener("change", function () {
+        showPreview(this);
+    });
+
+    // ⭐ REMOVE IMAGE
+    removeImageBtn.addEventListener("click", () => {
+        fileInput.value = "";
+        imagePreview.style.display = "none";
+        fileUploadArea.style.display = "block";
+    });
+
+    // ⭐ DRAG & DROP FIX
+    fileUploadArea.addEventListener("dragover", e => {
+        e.preventDefault();
+        fileUploadArea.classList.add("dragover");
+    });
+
+    fileUploadArea.addEventListener("dragleave", e => {
+        e.preventDefault();
+        fileUploadArea.classList.remove("dragover");
+    });
+
+    fileUploadArea.addEventListener("drop", e => {
+        e.preventDefault();
+        fileUploadArea.classList.remove("dragover");
+
+        const dropped = e.dataTransfer.files;
+        if (dropped.length > 0) {
+            const dt = new DataTransfer();
+            dt.items.add(dropped[0]);
+            fileInput.files = dt.files;
+
+            showPreview(fileInput);
+        }
+    });
+
+    // ⭐ CHARACTER COUNT
+    document.getElementById("content").addEventListener("input", function () {
+        const length = this.value.length;
+        charCount.textContent = length;
+
+        if (length > 5000) charCount.classList.add("warning");
+        else charCount.classList.remove("warning");
+    });
+
+    // ⭐ SUBMIT PROTECTION
+    document.getElementById("postForm").addEventListener("submit", function (e) {
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    });
+});
+</script>
+
+{% endblock %}

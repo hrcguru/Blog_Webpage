@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Upgrade Daily{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-logo">
+                <i class="fas fa-brain"></i> Upgrade Daily
+            </a>
+            <div class="nav-menu">
+                <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+                <a href="{{ url_for('about') }}" class="nav-link">About Me</a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link">Categories <i class="fas fa-chevron-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}">Esoteric Science</a>
+                        <a href="{{ url_for('category_posts', category_name='Science and Tech') }}">Science & Tech</a>
+                        <a href="{{ url_for('category_posts', category_name='Indian Culture') }}">Indian Culture</a>
+                        <a href="{{ url_for('category_posts', category_name='Spiritual') }}">Spiritual</a>
+                    </div>
+                </div>
+                <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
+                
+                {% if session.user_id %}
+                    {% if session.is_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="nav-link admin-btn">
+                            <i class="fas fa-tachometer-alt"></i> Admin Panel
+                        </a>
+                        <a href="{{ url_for('view_messages') }}" class="nav-link messages-btn">
+                            <i class="fas fa-envelope"></i> Messages
+                            {% if unread_count > 0 %}
+                            <span class="message-badge">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav-link logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout ({{ session.username }})
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="nav-link register-btn">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3><i class="fas fa-brain"></i> Wisdom Blog</h3>
+                <p>Exploring knowledge across multiple domains including science, technology, culture, and spirituality.</p>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/hrjain365/" target="_blank" title="LinkedIn">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                    <a href="#" target="_blank" title="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" target="_blank" title="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Categories</h4>
+                <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}">Esoteric Science</a>
+                <a href="{{ url_for('category_posts', category_name='Science and Tech') }}">Science & Tech</a>
+                <a href="{{ url_for('category_posts', category_name='Indian Culture') }}">Indian Culture</a>
+                <a href="{{ url_for('category_posts', category_name='Spiritual') }}">Spiritual</a>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="{{ url_for('index') }}">Home</a>
+                <a href="{{ url_for('about') }}">About Me</a>
+                <a href="{{ url_for('contact') }}">Contact</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
+                <a href="{{ url_for('view_messages') }}">Messages</a>
+                {% endif %}
+            </div>
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <p><i class="fas fa-envelope"></i> contact@wisdomblog.com</p>
+                <p><i class="fas fa-clock"></i> Response within 24 hours</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Hritik 24 X 7 Blogs. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
