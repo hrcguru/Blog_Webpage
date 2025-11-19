@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Wisdom Blog{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-badge">
+                    <span>✨ Explore Ancient Wisdom & Modern Insights</span>
+                </div>
+                <h1 class="hero-title">Welcome to <span class="gradient-text">Wisdom Blog</span></h1>
+                <p class="hero-subtitle">Discover fascinating topics across science, technology, culture, and spirituality. Bridge the gap between ancient wisdom and modern insights.</p>
+                {% if not session.user_id %}
+                <div class="hero-buttons">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-large pulse-animation">
+                        <i class="fas fa-user-plus"></i>
+                        Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary btn-large">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </a>
+                </div>
+                {% else %}
+                <div class="welcome-message">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <p class="welcome-text">Welcome back, <strong>{{ session.username }}</strong>! Ready to explore new knowledge?</p>
+                    {% if session.is_admin %}
+                    <div class="admin-quick-actions">
+                        <div class="quick-actions-header">
+                            <i class="fas fa-bolt"></i>
+                            <h3>Quick Actions</h3>
+                        </div>
+                        <div class="quick-actions-grid">
+                            <a href="{{ url_for('admin_dashboard') }}" class="quick-action-card dashboard-card">
+                                <div class="action-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h4>Admin Dashboard</h4>
+                                    <p>Manage posts, view stats, and monitor activity</p>
+                                </div>
+                                <div class="action-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </a>
+                            
+                            <a href="{{ url_for('create_post') }}" class="quick-action-card create-card">
+                                <div class="action-icon">
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h4>Create Post</h4>
+                                    <p>Write and publish new content</p>
+                                </div>
+                                <div class="action-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </a>
+                            
+                            <a href="{{ url_for('view_messages') }}" class="quick-action-card messages-card">
+                                <div class="action-icon">
+                                    <i class="fas fa-envelope"></i>
+                                    {% if unread_count > 0 %}
+                                    <span class="notification-badge">{{ unread_count }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="action-content">
+                                    <h4>Messages</h4>
+                                    <p>View and manage user inquiries</p>
+                                </div>
+                                <div class="action-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </a>
+                            
+                            <a href="{{ url_for('admin_dashboard') }}#posts" class="quick-action-card posts-card">
+                                <div class="action-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h4>All Posts</h4>
+                                    <p>Browse and manage all articles</p>
+                                </div>
+                                <div class="action-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="hero-visual">
+                <div class="floating-icons">
+                    <i class="icon-1 fas fa-atom"></i>
+                    <i class="icon-2 fas fa-yin-yang"></i>
+                    <i class="icon-3 fas fa-book"></i>
+                    <i class="icon-4 fas fa-globe-asia"></i>
+                    <i class="icon-5 fas fa-seedling"></i>
+                    <i class="icon-6 fas fa-star"></i>
+                </div>
+                <div class="hero-shape"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Posts Section with Filtering -->
+<section class="recent-posts-section section-padding bg-light">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Recent Posts</h2>
+            <p class="section-subtitle">Latest insights and knowledge shared by our community</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="category-filter"><i class="fas fa-filter"></i> Filter by Category:</label>
+                    <select id="category-filter" class="filter-select">
+                        <option value="all">All Categories</option>
+                        <option value="Esoteric Science">Esoteric Science</option>
+                        <option value="Science and Tech">Science & Tech</option>
+                        <option value="Indian Culture">Indian Culture</option>
+                        <option value="UPSC">UPSC</option>
+                        <option value="Spiritual">Spiritual</option>
+                        <option value="AboutMe">About Me</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="search-filter"><i class="fas fa-search"></i> Search:</label>
+                    <input type="text" id="search-filter" class="filter-input" placeholder="Search posts...">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="sort-filter"><i class="fas fa-sort"></i> Sort by:</label>
+                    <select id="sort-filter" class="filter-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="title">Title A-Z</option>
+                    </select>
+                </div>
+                
+                <button id="reset-filters" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+            
+            <div class="filter-results">
+                <span id="results-count">0</span> posts found
+            </div>
+        </div>
+        
+        {% if posts %}
+        <div class="posts-grid" id="posts-container">
+            {% for post in posts %}
+            <article class="post-card" data-category="{{ post['category'] }}" data-title="{{ post['title']|lower }}" data-date="{{ post['created_at'] }}">
+                <a href="{{ url_for('view_post', post_id=post['id']) }}" class="post-link">
+                    {% if post['image_path'] %}
+                    <div class="post-image">
+                        <img src="{{ get_image_url(post['image_path']) }}" alt="{{ post['title'] }}" loading="lazy">
+                        <div class="post-category-badge">{{ post['category'] }}</div>
+                    </div>
+                    {% else %}
+                    <div class="post-image placeholder">
+                        <div class="placeholder-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="post-category-badge">{{ post['category'] }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="post-content">
+                        <h3 class="post-title">{{ post['title'] }}</h3>
+                        <p class="post-excerpt">
+                            {{ post['content']|striptags|truncate(120) }}
+                        </p>
+                        <div class="post-meta">
+                            <div class="post-author">
+                                <i class="fas fa-user"></i>
+                                <span>{{ post['username'] }}</span>
+                            </div>
+                            <div class="post-date">
+                                <i class="fas fa-calendar"></i>
+                                <span>{{ format_date(post['created_at']) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+            {% endfor %}
+        </div>
+        
+        <div class="section-footer">
+            {% if session.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-tachometer-alt"></i>
+                View All Posts in Admin
+            </a>
+            {% else %}
+            <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}" class="btn btn-outline">
+                <i class="fas fa-book-open"></i>
+                Explore More Posts
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-feather"></i>
+            </div>
+            <h3 class="empty-title">No Posts Yet</h3>
+            <p class="empty-description">Be the first to share knowledge and insights with our community</p>
+            {% if session.is_admin %}
+            <a href="{{ url_for('create_post') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Create First Post
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{% if not session.user_id %}
+<!-- This section only shows when user is NOT logged in -->
+<section class="auth-required-section section-padding">
+    <div class="container">
+        <div class="auth-message-card">
+            <div class="auth-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2 class="auth-title">Content Locked</h2>
+            <p class="auth-description">Join our community of knowledge seekers to access all blog posts and exclusive content</p>
+            <div class="auth-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-user-plus"></i>
+                    Register Now
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary btn-large">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login to Account
+                </a>
+            </div>
+            <div class="auth-features">
+                <div class="feature">
+                    <i class="fas fa-book"></i>
+                    <span>Access All Posts</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-comments"></i>
+                    <span>Join Discussions</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-bell"></i>
+                    <span>Get Updates</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<style>
+/* Enhanced Filter Styles */
+.filter-section {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 3rem;
+}
+
+.filter-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    align-items: end;
+    margin-bottom: 1.5rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label i {
+    color: var(--primary);
+    font-size: 0.8rem;
+}
+
+.filter-select, .filter-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    transition: var(--transition);
+    background: var(--white);
+}
+
+.filter-select:focus, .filter-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(49, 105, 78, 0.1);
+}
+
+.filter-results {
+    text-align: center;
+    padding: 1rem;
+    background: var(--light);
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+#results-count {
+    color: var(--primary-light);
+    font-size: 1.2rem;
+}
+
+/* Enhanced Post Cards with Clickable Links */
+.post-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+    transition: var(--transition);
+}
+
+.post-link:hover {
+    transform: translateY(-2px);
+}
+
+.post-card {
+    background: white;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--hover-shadow);
+}
+
+.post-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.post-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.post-card:hover .post-image img {
+    transform: scale(1.05);
+}
+
+.post-image.placeholder {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.placeholder-icon {
+    font-size: 3rem;
+    color: white;
+    opacity: 0.7;
+}
+
+.post-category-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background-color: var(--primary);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.post-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.post-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    line-height: 1.4;
+}
+
+.post-excerpt {
+    color: var(--primary-light);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    flex: 1;
+}
+
+.post-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--primary-light);
+    margin-top: auto;
+}
+
+.post-author, .post-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Animation for filtered items */
+.post-card {
+    transition: all 0.3s ease;
+}
+
+.post-card.hidden {
+    display: none;
+}
+
+.post-card.visible {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design for Filters */
+@media (max-width: 768px) {
+    .filter-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .filter-group {
+        margin-bottom: 0;
+    }
+}
+
+/* Hero Badge */
+.hero-badge {
+    margin-bottom: 1rem;
+}
+
+.hero-badge span {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Gradient Text */
+.gradient-text {
+    background: linear-gradient(135deg, var(--accent), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Pulse Animation */
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* User Avatar */
+.user-avatar {
+    font-size: 3rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const categoryFilter = document.getElementById('category-filter');
+    const searchFilter = document.getElementById('search-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    const resetButton = document.getElementById('reset-filters');
+    const postsContainer = document.getElementById('posts-container');
+    const resultsCount = document.getElementById('results-count');
+    const postCards = document.querySelectorAll('.post-card');
+
+    // Initialize results count
+    updateResultsCount();
+
+    // Add event listeners to filters
+    categoryFilter.addEventListener('change', filterPosts);
+    searchFilter.addEventListener('input', filterPosts);
+    sortFilter.addEventListener('change', sortPosts);
+    resetButton.addEventListener('click', resetFilters);
+
+    function filterPosts() {
+        const categoryValue = categoryFilter.value;
+        const searchValue = searchFilter.value.toLowerCase();
+        
+        postCards.forEach(card => {
+            const cardCategory = card.getAttribute('data-category');
+            const cardTitle = card.getAttribute('data-title');
+            let visible = true;
+
+            // Category filter
+            if (categoryValue !== 'all' && cardCategory !== categoryValue) {
+                visible = false;
+            }
+
+            // Search filter
+            if (searchValue && !cardTitle.includes(searchValue)) {
+                visible = false;
+            }
+
+            // Show/hide card with animation
+            if (visible) {
+                card.classList.remove('hidden');
+                card.classList.add('visible');
+            } else {
+                card.classList.add('hidden');
+                card.classList.remove('visible');
+            }
+        });
+
+        updateResultsCount();
+    }
+
+    function sortPosts() {
+        const sortValue = sortFilter.value;
+        const container = postsContainer;
+        const cards = Array.from(container.getElementsByClassName('post-card'));
+        
+        cards.sort((a, b) => {
+            switch (sortValue) {
+                case 'newest':
+                    return new Date(b.getAttribute('data-date')) - new Date(a.getAttribute('data-date'));
+                case 'oldest':
+                    return new Date(a.getAttribute('data-date')) - new Date(b.getAttribute('data-date'));
+                case 'title':
+                    return a.getAttribute('data-title').localeCompare(b.getAttribute('data-title'));
+                default:
+                    return 0;
+            }
+        });
+
+        // Clear container and append sorted cards
+        container.innerHTML = '';
+        cards.forEach(card => container.appendChild(card));
+        
+        updateResultsCount();
+    }
+
+    function resetFilters() {
+        categoryFilter.value = 'all';
+        searchFilter.value = '';
+        sortFilter.value = 'newest';
+        filterPosts();
+        sortPosts();
+    }
+
+    function updateResultsCount() {
+        const visibleCards = document.querySelectorAll('.post-card:not(.hidden)').length;
+        resultsCount.textContent = visibleCards;
+    }
+
+    // Make entire post card clickable
+    postCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // If click is on a button or link inside the card, don't prevent default
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            
+            const link = this.querySelector('.post-link');
+            if (link) {
+                window.location.href = link.href;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

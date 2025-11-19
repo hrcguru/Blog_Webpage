@@ -1,0 +1,574 @@
+{% extends "base.html" %}
+
+{% block title %}Contact - Wisdom Blog{% endblock %}
+
+{% block content %}
+<div class="contact-container">
+    <!-- Hero Section -->
+    <div class="contact-hero">
+        <div class="contact-hero-content">
+            <h1 class="contact-title">Get In Touch</h1>
+            <p class="contact-subtitle">Let's start a conversation. I'd love to hear from you about collaborations, questions, or just to say hello!</p>
+        </div>
+    </div>
+
+    <div class="contact-content">
+        <!-- Contact Form Section -->
+        <div class="contact-form-section">
+            <div class="form-card">
+                <div class="form-header">
+                    <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>
+                    <p>Fill out the form below and I'll get back to you as soon as possible</p>
+                </div>
+                
+                <form method="POST" class="contact-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">
+                                <i class="fas fa-user"></i>
+                                Your Name
+                            </label>
+                            <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">
+                                <i class="fas fa-envelope"></i>
+                                Email Address
+                            </label>
+                            <input type="email" id="email" name="email" required placeholder="your.email@example.com">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="subject">
+                            <i class="fas fa-tag"></i>
+                            Subject
+                        </label>
+                        <input type="text" id="subject" name="subject" placeholder="What is this regarding?">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">
+                            <i class="fas fa-comment"></i>
+                            Your Message
+                        </label>
+                        <textarea id="message" name="message" rows="6" required placeholder="Tell me what's on your mind..."></textarea>
+                        <div class="character-count">
+                            <span id="charCount">0</span>/500 characters
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Clear Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Contact Info Section -->
+        <div class="contact-info-section">
+            <div class="info-card">
+                <div class="info-header">
+                    <h3><i class="fas fa-comments"></i> Let's Connect</h3>
+                    <p>Other ways to reach out and connect with me</p>
+                </div>
+                
+                <div class="contact-items">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Email Me</h4>
+                            <p>hritikjain365@gmail.com</p>
+                            <small>I typically respond within 24 hours</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Response Time</h4>
+                            <p>Within 24 Hours</p>
+                            <small>Usually much faster during business hours</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Availability</h4>
+                            <p>Monday - Friday</p>
+                            <small>9:00 AM - 6:00 PM IST</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="social-connect">
+                    <h4>Follow My Journey</h4>
+                    <p>Connect with me on professional networks</p>
+                    <div class="social-links">
+                        <a href="https://www.linkedin.com/in/hrjain365/" target="_blank" class="social-link linkedin">
+                            <i class="fab fa-linkedin"></i>
+                            <span>LinkedIn</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Contact Page Specific Styles */
+.contact-container {
+    min-height: 100vh;
+}
+
+.contact-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-light);
+    position: relative;
+    overflow: hidden;
+}
+
+.contact-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.3;
+}
+
+.contact-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.contact-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.contact-subtitle {
+    font-size: 1.3rem;
+    opacity: 0.9;
+    line-height: 1.6;
+    color: var(--accent);
+}
+
+.contact-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+/* Form Styles */
+.contact-form-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.form-card {
+    padding: 0;
+    box-shadow: var(--card-shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.form-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--text-light);
+    padding: 2rem;
+    text-align: center;
+}
+
+.form-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.form-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.contact-form {
+    padding: 2rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.form-group label i {
+    color: var(--primary);
+    width: 16px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(49, 105, 78, 0.1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #a0aec0;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.5;
+}
+
+.character-count {
+    text-align: right;
+    color: var(--primary-light);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+.character-count.warning {
+    color: #e53e3e;
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+/* Contact Info Styles */
+.contact-info-section {
+    position: sticky;
+    top: 2rem;
+}
+
+.info-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.info-header {
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+    color: var(--text-dark);
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.info-header h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.info-header p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.contact-items {
+    padding: 1.5rem;
+}
+
+.contact-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.contact-item:last-child {
+    border-bottom: none;
+}
+
+.contact-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.contact-details h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-dark);
+    font-size: 1.1rem;
+}
+
+.contact-details p {
+    margin: 0 0 0.25rem 0;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.contact-details small {
+    color: var(--primary-light);
+    font-size: 0.8rem;
+}
+
+.social-connect {
+    padding: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+    text-align: center;
+}
+
+.social-connect h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-dark);
+}
+
+.social-connect p {
+    margin: 0 0 1.5rem 0;
+    color: var(--primary-light);
+    font-size: 0.9rem;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary);
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.social-link:hover {
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(49, 105, 78, 0.3);
+}
+
+.social-link.linkedin {
+    background: #0077b5;
+}
+
+.social-link.linkedin:hover {
+    background: #00669c;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .contact-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .contact-info-section {
+        position: static;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .contact-hero {
+        padding: 3rem 1rem;
+    }
+    
+    .contact-title {
+        font-size: 2.2rem;
+    }
+    
+    .contact-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .contact-content {
+        padding: 2rem 1rem;
+    }
+    
+    .contact-form {
+        padding: 1.5rem;
+    }
+    
+    .form-header {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-title {
+        font-size: 1.8rem;
+    }
+    
+    .contact-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+    
+    .contact-icon {
+        align-self: center;
+    }
+    
+    .social-links {
+        flex-direction: column;
+    }
+    
+    .social-link {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('charCount');
+    const maxChars = 500;
+    
+    // Character count functionality
+    messageTextarea.addEventListener('input', function() {
+        const currentLength = this.value.length;
+        charCount.textContent = currentLength;
+        
+        if (currentLength > maxChars * 0.8) {
+            charCount.classList.add('warning');
+        } else {
+            charCount.classList.remove('warning');
+        }
+        
+        if (currentLength > maxChars) {
+            this.value = this.value.substring(0, maxChars);
+            charCount.textContent = maxChars;
+        }
+    });
+    
+    // Form validation enhancement
+    const contactForm = document.querySelector('.contact-form');
+    contactForm.addEventListener('submit', function(e) {
+        const inputs = this.querySelectorAll('input[required], textarea[required]');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            if (!input.value.trim()) {
+                input.style.borderColor = '#e53e3e';
+                isValid = false;
+            } else {
+                input.style.borderColor = '#e2e8f0';
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            // Add a subtle shake animation to invalid fields
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.classList.add('shake');
+                    setTimeout(() => input.classList.remove('shake'), 600);
+                }
+            });
+        }
+    });
+    
+    // Add shake animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}
