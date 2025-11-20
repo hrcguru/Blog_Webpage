@@ -30,9 +30,8 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 # -------------------------------------------------------------
 # SUPABASE CONFIG
 # -------------------------------------------------------------
-SUPABASE_URL = "https://japdivjgyqkjougdcahp.supabase.co"
-SUPABASE_KEY = "YOUR-ANON-KEY-HERE"
-
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 STORAGE_BUCKET = "blog-images"
 
@@ -374,3 +373,4 @@ def mark_all_read():
 # -------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
+
