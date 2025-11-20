@@ -6,3 +6,5 @@ Jinja2
 click
 MarkupSafe
 bleach
+psycopg2-binary==2.9.7
+python-dotenv==1.0.0
