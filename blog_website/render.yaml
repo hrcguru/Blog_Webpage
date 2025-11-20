@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: blog-website
-    runtime: python
-    rootDir: blog_website
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
