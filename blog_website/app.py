@@ -1,68 +1,76 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import sqlite3
 import os
 from datetime import datetime
 import html
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
 
-# Database initialization
-def init_db():
-    conn = sqlite3.connect('blog.db')
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE NOT NULL,
-                  email TEXT UNIQUE NOT NULL,
-                  password TEXT NOT NULL,
-                  is_admin BOOLEAN DEFAULT FALSE,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Posts table
-    c.execute('''CREATE TABLE IF NOT EXISTS posts
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  title TEXT NOT NULL,
-                  content TEXT NOT NULL,
-                  category TEXT NOT NULL,
-                  image_path TEXT,
-                  author_id INTEGER,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  FOREIGN KEY (author_id) REFERENCES users (id))''')
-    
-    # Messages table
-    c.execute('''CREATE TABLE IF NOT EXISTS messages
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  name TEXT NOT NULL,
-                  email TEXT NOT NULL,
-                  message TEXT NOT NULL,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  is_read BOOLEAN DEFAULT FALSE)''')
-    
-    # Create default admin user
-    try:
-        admin_password = generate_password_hash('admin123')
-        c.execute("INSERT OR IGNORE INTO users (username, email, password, is_admin) VALUES (?, ?, ?, ?)",
-                  ('admin', 'admin@blog.com', admin_password, True))
-        print("✅ Default admin user created")
-    except:
-        pass
-    
-    conn.commit()
-    conn.close()
-    print("✅ SQLite database initialized successfully!")
+# Database configuration
+DATABASE_URL = "postgresql://blog_website_cktc_user:RVixdA5vQjOCpwT13gkFAycZf2fLRQ81@dpg-d4fcl0f5r7bs73ckt360-a.oregon-postgres.render.com/blog_website_cktc"
 
 def get_db_connection():
-    conn = sqlite3.connect('blog.db')
-    conn.row_factory = sqlite3.Row
+    """Get PostgreSQL database connection"""
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
+
+# Database initialization
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Users table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS users
+                     (id SERIAL PRIMARY KEY,
+                      username TEXT UNIQUE NOT NULL,
+                      email TEXT UNIQUE NOT NULL,
+                      password TEXT NOT NULL,
+                      is_admin BOOLEAN DEFAULT FALSE,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Posts table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS posts
+                     (id SERIAL PRIMARY KEY,
+                      title TEXT NOT NULL,
+                      content TEXT NOT NULL,
+                      category TEXT NOT NULL,
+                      image_path TEXT,
+                      author_id INTEGER REFERENCES users(id),
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Messages table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS messages
+                     (id SERIAL PRIMARY KEY,
+                      name TEXT NOT NULL,
+                      email TEXT NOT NULL,
+                      message TEXT NOT NULL,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      is_read BOOLEAN DEFAULT FALSE)''')
+        
+        # Create default admin user
+        admin_password = generate_password_hash('admin123')
+        cursor.execute('''INSERT INTO users (username, email, password, is_admin) 
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (username) DO NOTHING''',
+                    ('admin', 'admin@blog.com', admin_password, True))
+        
+        conn.commit()
+        print("✅ PostgreSQL database initialized successfully!")
+        print("✅ Default admin user created")
+        
+    except Exception as e:
+        print(f"❌ Database initialization error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -87,7 +95,9 @@ def admin_required(f):
             return redirect(url_for('login'))
         
         conn = get_db_connection()
-        user = conn.execute('SELECT is_admin FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        cursor = conn.cursor()
+        cursor.execute('SELECT is_admin FROM users WHERE id = %s', (session['user_id'],))
+        user = cursor.fetchone()
         conn.close()
         
         if not user or not user['is_admin']:
@@ -101,7 +111,9 @@ def admin_required(f):
 # Helper function to get unread message count
 def get_unread_message_count():
     conn = get_db_connection()
-    count = conn.execute('SELECT COUNT(*) as count FROM messages WHERE is_read = 0').fetchone()['count']
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) as count FROM messages WHERE is_read = FALSE')
+    count = cursor.fetchone()['count']
     conn.close()
     return count
 
@@ -146,13 +158,15 @@ def utility_processor():
 @app.route('/')
 def index():
     conn = get_db_connection()
-    posts = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT p.*, u.username 
         FROM posts p 
         JOIN users u ON p.author_id = u.id 
         ORDER BY p.created_at DESC 
         LIMIT 6
-    ''').fetchall()
+    ''')
+    posts = cursor.fetchall()
     conn.close()
     return render_template('index.html', posts=posts)
 
@@ -171,14 +185,16 @@ def register():
         hashed_password = generate_password_hash(password)
         
         conn = get_db_connection()
+        cursor = conn.cursor()
         try:
-            conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+            cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)',
                         (username, email, hashed_password))
             conn.commit()
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
-        except sqlite3.IntegrityError:
+        except Exception as e:
             flash('Username or email already exists!', 'error')
+            print(f"Registration error: {e}")
         finally:
             conn.close()
     
@@ -191,7 +207,9 @@ def login():
         password = request.form['password']
         
         conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+        user = cursor.fetchone()
         conn.close()
         
         if user and check_password_hash(user['password'], password):
@@ -217,17 +235,24 @@ def logout():
 @admin_required
 def admin_dashboard():
     conn = get_db_connection()
-    posts = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT p.*, u.username 
         FROM posts p 
         JOIN users u ON p.author_id = u.id 
         ORDER BY p.created_at DESC
-    ''').fetchall()
+    ''')
+    posts = cursor.fetchall()
     
     # Get stats for dashboard
-    total_posts = conn.execute('SELECT COUNT(*) as count FROM posts').fetchone()['count']
-    total_messages = conn.execute('SELECT COUNT(*) as count FROM messages').fetchone()['count']
-    unread_messages = conn.execute('SELECT COUNT(*) as count FROM messages WHERE is_read = 0').fetchone()['count']
+    cursor.execute('SELECT COUNT(*) as count FROM posts')
+    total_posts = cursor.fetchone()['count']
+    
+    cursor.execute('SELECT COUNT(*) as count FROM messages')
+    total_messages = cursor.fetchone()['count']
+    
+    cursor.execute('SELECT COUNT(*) as count FROM messages WHERE is_read = FALSE')
+    unread_messages = cursor.fetchone()['count']
     
     conn.close()
     
@@ -275,8 +300,9 @@ def create_post():
                 return render_template('create_post.html', categories=categories)
         
         conn = get_db_connection()
+        cursor = conn.cursor()
         try:
-            conn.execute('INSERT INTO posts (title, content, category, image_path, author_id) VALUES (?, ?, ?, ?, ?)',
+            cursor.execute('INSERT INTO posts (title, content, category, image_path, author_id) VALUES (%s, %s, %s, %s, %s)',
                         (title, content, category, image_path, session['user_id']))
             conn.commit()
             flash('Post created successfully!', 'success')
@@ -295,6 +321,7 @@ def edit_post(post_id):
     categories = ['AboutMe', 'Esoteric Science', 'Science and Tech', 'Indian Culture', 'Spiritual']
     
     conn = get_db_connection()
+    cursor = conn.cursor()
     
     if request.method == 'POST':
         title = request.form['title']
@@ -305,7 +332,8 @@ def edit_post(post_id):
         
         content = html.escape(content)
         
-        current_post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+        cursor.execute('SELECT * FROM posts WHERE id = %s', (post_id,))
+        current_post = cursor.fetchone()
         
         image_path = current_post['image_path']
         
@@ -339,10 +367,10 @@ def edit_post(post_id):
                 return render_template('edit_post.html', post=current_post, categories=categories)
         
         # Update the post
-        conn.execute('''
+        cursor.execute('''
             UPDATE posts 
-            SET title = ?, content = ?, category = ?, image_path = ?
-            WHERE id = ?
+            SET title = %s, content = %s, category = %s, image_path = %s
+            WHERE id = %s
         ''', (title, content, category, image_path, post_id))
         conn.commit()
         conn.close()
@@ -351,7 +379,8 @@ def edit_post(post_id):
         return redirect(url_for('admin_dashboard'))
     
     # GET request - show edit form
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+    cursor.execute('SELECT * FROM posts WHERE id = %s', (post_id,))
+    post = cursor.fetchone()
     conn.close()
     
     if not post:
@@ -364,9 +393,11 @@ def edit_post(post_id):
 @admin_required
 def delete_post(post_id):
     conn = get_db_connection()
+    cursor = conn.cursor()
     
     # Get post to check for image
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+    cursor.execute('SELECT * FROM posts WHERE id = %s', (post_id,))
+    post = cursor.fetchone()
     
     if post and post['image_path']:
         # Delete the image file
@@ -375,7 +406,7 @@ def delete_post(post_id):
             os.remove(image_path)
     
     # Delete the post
-    conn.execute('DELETE FROM posts WHERE id = ?', (post_id,))
+    cursor.execute('DELETE FROM posts WHERE id = %s', (post_id,))
     conn.commit()
     conn.close()
     
@@ -387,10 +418,12 @@ def delete_post(post_id):
 @admin_required
 def view_messages():
     conn = get_db_connection()
-    messages = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT * FROM messages 
         ORDER BY created_at DESC
-    ''').fetchall()
+    ''')
+    messages = cursor.fetchall()
     conn.close()
     return render_template('messages.html', messages=messages)
 
@@ -398,7 +431,8 @@ def view_messages():
 @admin_required
 def delete_message(message_id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM messages WHERE id = ?', (message_id,))
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM messages WHERE id = %s', (message_id,))
     conn.commit()
     conn.close()
     flash('Message deleted successfully!', 'success')
@@ -408,9 +442,11 @@ def delete_message(message_id):
 @admin_required
 def toggle_message_read(message_id):
     conn = get_db_connection()
-    message = conn.execute('SELECT is_read FROM messages WHERE id = ?', (message_id,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute('SELECT is_read FROM messages WHERE id = %s', (message_id,))
+    message = cursor.fetchone()
     new_status = not message['is_read']
-    conn.execute('UPDATE messages SET is_read = ? WHERE id = ?', (new_status, message_id))
+    cursor.execute('UPDATE messages SET is_read = %s WHERE id = %s', (new_status, message_id))
     conn.commit()
     conn.close()
     flash('Message status updated!', 'success')
@@ -420,7 +456,8 @@ def toggle_message_read(message_id):
 @admin_required
 def mark_all_messages_read():
     conn = get_db_connection()
-    conn.execute('UPDATE messages SET is_read = 1 WHERE is_read = 0')
+    cursor = conn.cursor()
+    cursor.execute('UPDATE messages SET is_read = TRUE WHERE is_read = FALSE')
     conn.commit()
     conn.close()
     flash('All messages marked as read!', 'success')
@@ -430,12 +467,14 @@ def mark_all_messages_read():
 @login_required
 def view_post(post_id):
     conn = get_db_connection()
-    post = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT p.*, u.username 
         FROM posts p 
         JOIN users u ON p.author_id = u.id 
-        WHERE p.id = ?
-    ''', (post_id,)).fetchone()
+        WHERE p.id = %s
+    ''', (post_id,))
+    post = cursor.fetchone()
     conn.close()
     
     if not post:
@@ -448,13 +487,15 @@ def view_post(post_id):
 @login_required
 def category_posts(category_name):
     conn = get_db_connection()
-    posts = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT p.*, u.username 
         FROM posts p 
         JOIN users u ON p.author_id = u.id 
-        WHERE p.category = ? 
+        WHERE p.category = %s 
         ORDER BY p.created_at DESC
-    ''', (category_name,)).fetchall()
+    ''', (category_name,))
+    posts = cursor.fetchall()
     conn.close()
     
     return render_template('categories.html', posts=posts, category=category_name)
@@ -472,7 +513,8 @@ def contact():
         
         # Store message in database
         conn = get_db_connection()
-        conn.execute('INSERT INTO messages (name, email, message) VALUES (?, ?, ?)',
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO messages (name, email, message) VALUES (%s, %s, %s)',
                     (name, email, message_text))
         conn.commit()
         conn.close()
@@ -489,7 +531,7 @@ def uploaded_file(filename):
 if __name__ == '__main__':
     init_db()
     print("\n" + "="*50)
-    print("🚀 Blog Website Starting with SQLite Database")
+    print("🚀 Blog Website Starting with PostgreSQL Database")
     print("📝 Admin Login: username 'admin', password 'admin123'")
     print("📧 Messages System: Enabled")
     print("📝 Rich Text Editor: Enabled")
