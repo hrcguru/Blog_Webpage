@@ -341,28 +341,61 @@ def create_admin_user():
 
 @app.route("/fix-admin")
 def fix_admin():
-    """Update existing admin user with correct password hash"""
+    """Create or update admin user with correct password hash"""
     try:
-        # Update the existing user with correct password hash and your email
+        # Check if admin already exists
+        existing_admin = (
+            supabase_admin.table("users")
+            .select("*")
+            .eq("username", "ajainhr")
+            .execute()
+            .data
+        )
+        
         hashed_password = generate_password_hash("Adinath72*", method='scrypt')
         
-        result = supabase_admin.table("users").update({
-            "password": hashed_password,
-            "is_admin": True,
-            "email": "hritikmasai@gmail.com"
-        }).eq("username", "ajainhr").execute()
-        
-        if result.data:
-            return '''
-            <h1>Admin password updated successfully!</h1>
-            <p><strong>Username:</strong> ajainhr</p>
-            <p><strong>Email:</strong> hritikmasai@gmail.com</p>
-            <p><strong>Password:</strong> Adinath72*</p>
-            <p><strong>Now try logging in again</strong></p>
-            <a href="/login">Go to Login</a>
-            '''
+        if existing_admin:
+            # Update existing user
+            result = supabase_admin.table("users").update({
+                "password": hashed_password,
+                "is_admin": True,
+                "email": "hritikmasai@gmail.com"
+            }).eq("username", "ajainhr").execute()
+            
+            if result.data:
+                return '''
+                <h1>Admin user updated successfully!</h1>
+                <p><strong>Username:</strong> ajainhr</p>
+                <p><strong>Email:</strong> hritikmasai@gmail.com</p>
+                <p><strong>Password:</strong> Adinath72*</p>
+                <p><strong>Now try logging in again</strong></p>
+                <a href="/login">Go to Login</a>
+                '''
+            else:
+                return "Failed to update admin user"
         else:
-            return "Failed to update admin user. User may not exist."
+            # Create new admin user
+            admin_data = {
+                "username": "ajainhr",
+                "email": "hritikmasai@gmail.com",
+                "password": hashed_password,
+                "is_admin": True,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            result = supabase_admin.table("users").insert(admin_data).execute()
+            
+            if result.data:
+                return '''
+                <h1>Admin user created successfully!</h1>
+                <p><strong>Username:</strong> ajainhr</p>
+                <p><strong>Email:</strong> hritikmasai@gmail.com</p>
+                <p><strong>Password:</strong> Adinath72*</p>
+                <p><strong>Now try logging in</strong></p>
+                <a href="/login">Go to Login</a>
+                '''
+            else:
+                return "Failed to create admin user"
             
     except Exception as e:
         return f"Error: {str(e)}"
@@ -527,3 +560,4 @@ def serve_script():
 # -------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
+
