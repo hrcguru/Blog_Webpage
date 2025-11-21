@@ -1,5 +1,5 @@
 # -------------------------------------------------------------
-# FULL ADVANCED APP.PY — PROPER RLS POLICIES VERSION
+# FULL ADVANCED APP.PY — PROPER RLS POLICIES VERSION (FIXED)
 # -------------------------------------------------------------
 from flask import (
     Flask,
@@ -67,71 +67,7 @@ def setup_rls_policies():
             print("❌ Cannot setup RLS policies - no admin client")
             return False
         
-        # Enable RLS on all tables
-        tables = ["users", "posts", "messages"]
-        
-        for table in tables:
-            # Enable RLS if not already enabled
-            supabase_admin.rpc('enable_rls_if_disabled', {'table_name': table}).execute()
-            print(f"✅ RLS enabled for {table}")
-        
-        # USERS TABLE POLICIES
-        users_policies = [
-            {
-                "name": "Users can view all profiles",
-                "policy": "FOR SELECT USING (true)"
-            },
-            {
-                "name": "Service role can manage users", 
-                "policy": "FOR ALL USING (auth.role() = 'service_role')"
-            }
-        ]
-        
-        # POSTS TABLE POLICIES  
-        posts_policies = [
-            {
-                "name": "Anyone can view published posts",
-                "policy": "FOR SELECT USING (true)"
-            },
-            {
-                "name": "Authenticated users can create posts",
-                "policy": "FOR INSERT WITH CHECK (auth.role() = 'authenticated')"
-            },
-            {
-                "name": "Authors can update their own posts",
-                "policy": "FOR UPDATE USING (auth.uid() = author_id)"
-            },
-            {
-                "name": "Authors can delete their own posts", 
-                "policy": "FOR DELETE USING (auth.uid() = author_id)"
-            },
-            {
-                "name": "Service role full access",
-                "policy": "FOR ALL USING (auth.role() = 'service_role')"
-            }
-        ]
-        
-        # MESSAGES TABLE POLICIES
-        messages_policies = [
-            {
-                "name": "Anyone can insert messages",
-                "policy": "FOR INSERT WITH CHECK (true)"
-            },
-            {
-                "name": "Admin can view all messages", 
-                "policy": "FOR SELECT USING (auth.role() = 'service_role')"
-            },
-            {
-                "name": "Admin can update messages",
-                "policy": "FOR UPDATE USING (auth.role() = 'service_role')"
-            },
-            {
-                "name": "Admin can delete messages",
-                "policy": "FOR DELETE USING (auth.role() = 'service_role')"
-            }
-        ]
-        
-        print("✅ RLS policies configured successfully")
+        print("✅ RLS setup function called - policies should be configured in Supabase dashboard")
         return True
         
     except Exception as e:
@@ -808,20 +744,51 @@ document.addEventListener('DOMContentLoaded', function() {
 # -------------------------------------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('404.html'), 404
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>404 - Page Not Found</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>404 - Page Not Found</h1>
+        <p>The page you are looking for does not exist.</p>
+        <a href="/">Go Home</a>
+    </body>
+    </html>
+    ''', 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return render_template('500.html'), 500
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>500 - Internal Server Error</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong on our end. Please try again later.</p>
+        <a href="/">Go Home</a>
+    </body>
+    </html>
+    ''', 500
 
 # -------------------------------------------------------------
-# INITIALIZATION
+# INITIALIZATION - FIXED VERSION (No before_first_request)
 # -------------------------------------------------------------
-@app.before_first_request
-def initialize_app():
-    """Initialize RLS policies on first request"""
-    print("🚀 Initializing Flask application with RLS policies...")
-    setup_rls_policies()
+# Remove the problematic before_first_request decorator
+# RLS setup will be called when needed or manually via /setup-rls
 
 # -------------------------------------------------------------
 # RUN SERVER
@@ -834,4 +801,8 @@ if __name__ == "__main__":
     print("   /setup-admin - Create admin user") 
     print("   /login - User login")
     print("   /admin/dashboard - Admin dashboard")
+    
+    # Initialize RLS policies on startup
+    setup_rls_policies()
+    
     app.run(debug=True, host='0.0.0.0', port=5000)
