@@ -148,20 +148,28 @@ def inject_utils():
 def index():
     try:
         if not supabase:
+            print("❌ No database connection")
             return render_template("index.html", posts=[], error="Database connection failed")
         
-        posts = (
-            supabase.table("posts")
-            .select("*, users(username)")
-            .order("created_at", desc=True)
-            .limit(6)
-            .execute()
-            .data
-        )
+        print("🔄 Loading posts for index page...")
+        
+        # Get posts with users information
+        response = supabase.table("posts").select("*, users(username)").order("created_at", desc=True).limit(6).execute()
+        
+        if not response.data:
+            print("ℹ️ No posts found in database")
+            return render_template("index.html", posts=[], error="No posts available")
+        
+        posts = response.data
+        print(f"✅ Loaded {len(posts)} posts successfully")
+        
         return render_template("index.html", posts=posts)
+        
     except Exception as e:
-        print(f"❌ Index error: {e}")
-        return render_template("index.html", posts=[])
+        print(f"❌ Index error: {str(e)}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
+        return render_template("index.html", posts=[], error="Error loading posts")
 
 @app.route("/about")
 def about():
@@ -280,7 +288,7 @@ def logout():
     return redirect(url_for("index"))
 
 # -------------------------------------------------------------
-# ROUTES — POSTS
+# ROUTES — POSTS (FIXED VERSIONS)
 # -------------------------------------------------------------
 @app.route("/post/<int:id>")
 @login_required
@@ -290,21 +298,23 @@ def view_post(id):
             flash("Database connection error.", "error")
             return redirect(url_for("index"))
         
-        post = (
-            supabase.table("posts")
-            .select("*, users(username)")
-            .eq("id", id)
-            .execute()
-            .data
-        )
-
-        if not post:
+        print(f"🔄 Loading post ID: {id}")
+        
+        # Get post with user information
+        response = supabase.table("posts").select("*, users(username)").eq("id", id).execute()
+        
+        if not response.data:
+            print(f"❌ Post {id} not found")
             flash("Post not found.", "error")
             return redirect(url_for("index"))
 
-        return render_template("post.html", post=post[0])
+        post = response.data[0]
+        print(f"✅ Loaded post: {post['title']}")
+        
+        return render_template("post.html", post=post)
+        
     except Exception as e:
-        print(f"❌ View post error: {e}")
+        print(f"❌ View post error: {str(e)}")
         flash("Error loading post.", "error")
         return redirect(url_for("index"))
 
@@ -313,20 +323,20 @@ def view_post(id):
 def view_category(category):
     try:
         if not supabase:
-            return render_template("categories.html", posts=[], category=category)
+            return render_template("categories.html", posts=[], category=category, error="Database connection failed")
         
-        posts = (
-            supabase.table("posts")
-            .select("*, users(username)")
-            .eq("category", category)
-            .order("created_at", desc=True)
-            .execute()
-            .data
-        )
+        print(f"🔄 Loading posts for category: {category}")
+        
+        response = supabase.table("posts").select("*, users(username)").eq("category", category).order("created_at", desc=True).execute()
+        
+        posts = response.data if response.data else []
+        print(f"✅ Loaded {len(posts)} posts for category: {category}")
+        
         return render_template("categories.html", posts=posts, category=category)
+        
     except Exception as e:
-        print(f"❌ Category error: {e}")
-        return render_template("categories.html", posts=[], category=category)
+        print(f"❌ Category error: {str(e)}")
+        return render_template("categories.html", posts=[], category=category, error="Error loading posts")
 
 # -------------------------------------------------------------
 # CONTACT MESSAGE
@@ -374,6 +384,41 @@ def view_messages():
         print(f"❌ View messages error: {e}")
         flash("Error loading messages.", "error")
         return redirect(url_for("index"))
+
+# -------------------------------------------------------------
+# DEBUG ROUTES - ADD THESE
+# -------------------------------------------------------------
+@app.route("/debug/posts")
+def debug_posts():
+    """Debug route to check if posts are loading"""
+    try:
+        if not supabase:
+            return jsonify({"error": "No database connection"})
+        
+        # Test posts query
+        posts = supabase.table("posts").select("*, users(username)").execute()
+        return jsonify({
+            "database_connected": True,
+            "posts_count": len(posts.data) if posts.data else 0,
+            "posts_data": posts.data if posts.data else []
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route("/debug/users")
+def debug_users():
+    """Debug route to check users"""
+    try:
+        if not supabase:
+            return jsonify({"error": "No database connection"})
+        
+        users = supabase.table("users").select("*").execute()
+        return jsonify({
+            "users_count": len(users.data) if users.data else 0,
+            "users_data": users.data if users.data else []
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # -------------------------------------------------------------
 # ADMIN SETUP ROUTE
@@ -447,16 +492,23 @@ def admin_dashboard():
             flash("Database connection error.", "error")
             return redirect(url_for("index"))
         
+        print("🔄 Loading admin dashboard data...")
+        
         # Get all data
-        posts = supabase.table("posts").select("*, users(username)").order("created_at", desc=True).execute().data
+        posts_response = supabase.table("posts").select("*, users(username)").order("created_at", desc=True).execute()
+        posts = posts_response.data if posts_response.data else []
         total_posts = len(posts)
 
-        messages = supabase.table("messages").select("*").execute().data
+        messages_response = supabase.table("messages").select("*").execute()
+        messages = messages_response.data if messages_response.data else []
         total_messages = len(messages)
         unread_messages = sum(1 for m in messages if not m["is_read"])
 
-        users = supabase.table("users").select("*").execute().data
+        users_response = supabase.table("users").select("*").execute()
+        users = users_response.data if users_response.data else []
         total_users = len(users)
+
+        print(f"✅ Admin dashboard loaded: {total_posts} posts, {total_messages} messages, {total_users} users")
 
         return render_template(
             "admin_dashboard.html",
@@ -659,5 +711,7 @@ if __name__ == "__main__":
     print("   /admin/dashboard - Admin dashboard")
     print("   /admin/create-post - Create new post")
     print("   /admin/edit-post/<id> - Edit post")
+    print("   /debug/posts - Debug posts data")
+    print("   /debug/users - Debug users data")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
