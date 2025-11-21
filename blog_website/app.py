@@ -668,12 +668,16 @@ def delete_message(id):
     return redirect(url_for("admin_messages"))
 
 # -------------------------------------------------------------
-# STATIC FILE ROUTES
+# STATIC FILE ROUTES - FIXED
 # -------------------------------------------------------------
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                             'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    try:
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                                 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    except:
+        # Return a default response if favicon doesn't exist
+        return '', 204
 
 @app.route('/static/script.js')
 def serve_script():
@@ -689,15 +693,49 @@ document.addEventListener('DOMContentLoaded', function() {
     return send_from_directory(os.path.join(app.root_path, 'static'), 'script.js')
 
 # -------------------------------------------------------------
-# ERROR HANDLERS
+# ERROR HANDLERS - FIXED (Simple versions)
 # -------------------------------------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('404.html'), 404
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>404 - Page Not Found</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #666; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>404 - Page Not Found</h1>
+        <p>The page you're looking for doesn't exist.</p>
+        <p><a href="/">Return to Home</a></p>
+    </body>
+    </html>
+    ''', 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return render_template('500.html'), 500
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>500 - Internal Server Error</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #d9534f; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong on our end. Please try again later.</p>
+        <p><a href="/">Return to Home</a></p>
+    </body>
+    </html>
+    ''', 500
 
 # -------------------------------------------------------------
 # RUN SERVER
