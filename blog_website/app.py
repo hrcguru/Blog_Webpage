@@ -9,13 +9,12 @@ from flask import (
     url_for,
     flash,
     session,
-    send_from_directory,
-    jsonify
+    send_from_directory
 )
 from supabase import create_client
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os, uuid, html, requests
+import os, uuid, html
 from datetime import datetime
 
 # -------------------------------------------------------------
@@ -198,7 +197,6 @@ def login():
 
         # FIXED: Use the same method that was used for hashing
         try:
-            # First try with scrypt method
             if not check_password_hash(user["password"], data["password"]):
                 flash("Invalid username or password.", "error")
                 return redirect(url_for("login"))
