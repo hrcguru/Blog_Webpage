@@ -558,9 +558,8 @@ def create_post():
             return redirect(url_for("create_post"))
 
     return render_template("create_post.html", categories=categories)
-
 # -------------------------------------------------------------
-# ADMIN — EDIT POST (USES ADMIN CLIENT)
+# ADMIN — EDIT POST
 # -------------------------------------------------------------
 @app.route("/admin/edit-post/<int:id>", methods=["GET", "POST"])
 @admin_required
@@ -572,39 +571,67 @@ def edit_post(id):
             flash("Database connection error.", "error")
             return redirect(url_for("admin_dashboard"))
         
-        # Use admin client
-        post = supabase_admin.table("posts").select("*").eq("id", id).execute().data
-        if not post:
+        print(f"🔄 Loading post with ID: {id} for editing...")
+        
+        # Use admin client to get post
+        post_response = supabase_admin.table("posts").select("*").eq("id", id).execute()
+        
+        if not post_response.data:
+            print(f"❌ Post with ID {id} not found")
             flash("Post not found.", "error")
             return redirect(url_for("admin_dashboard"))
 
-        post = post[0]
+        post = post_response.data[0]
+        print(f"✅ Loaded post: {post['title']}")
 
         if request.method == "POST":
             data = request.form
             image = request.files.get("image")
             img_url = post["image_path"]
 
+            # Handle image removal
             if data.get("remove_image") == "yes":
                 img_url = None
+                print("🖼️ Image removal requested")
 
+            # Handle new image upload
             if image and image.filename != "":
+                print(f"🖼️ Uploading new image: {image.filename}")
                 img_url = upload_image_to_supabase(image)
+                if img_url:
+                    print(f"✅ Image uploaded successfully: {img_url}")
+                else:
+                    print("❌ Image upload failed")
 
-            supabase_admin.table("posts").update({
+            # Update post
+            update_data = {
                 "title": data["title"],
                 "content": html.escape(data["content"]),
                 "category": data["category"],
-                "image_path": img_url
-            }).eq("id", id).execute()
-
-            flash("Post updated successfully!", "success")
-            return redirect(url_for("admin_dashboard"))
+                "image_path": img_url,
+                "updated_at": datetime.utcnow().isoformat()  # Add update timestamp
+            }
+            
+            print(f"📝 Updating post with data: {update_data['title']}")
+            
+            update_response = supabase_admin.table("posts").update(update_data).eq("id", id).execute()
+            
+            if update_response.data:
+                print("✅ Post updated successfully!")
+                flash("Post updated successfully!", "success")
+                return redirect(url_for("admin_dashboard"))
+            else:
+                print("❌ Post update failed - no data returned")
+                flash("Error updating post. Please try again.", "error")
+                return redirect(url_for("edit_post", id=id))
 
         return render_template("edit_post.html", post=post, categories=categories)
+        
     except Exception as e:
-        print(f"❌ Edit post error: {e}")
-        flash("Error loading post for editing.", "error")
+        print(f"❌ Edit post error: {str(e)}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
+        flash(f"Error loading post for editing: {str(e)}", "error")
         return redirect(url_for("admin_dashboard"))
 
 # -------------------------------------------------------------
@@ -806,3 +833,4 @@ if __name__ == "__main__":
     setup_rls_policies()
     
     app.run(debug=True, host='0.0.0.0', port=5000)
+
