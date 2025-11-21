@@ -341,33 +341,28 @@ def create_admin_user():
 
 @app.route("/fix-admin")
 def fix_admin():
-    """Create a properly hashed admin user"""
+    """Update existing admin user with correct password hash"""
     try:
-        # Delete existing admin if exists
-        supabase_admin.table("users").delete().eq("username", "ajainhr").execute()
-        
-        # Create admin user with correct hashing
+        # Update the existing user with correct password hash and your email
         hashed_password = generate_password_hash("Adinath72*", method='scrypt')
-        admin_data = {
-            "username": "ajainhr",
-            "email": "ajainhr@example.com",
+        
+        result = supabase_admin.table("users").update({
             "password": hashed_password,
             "is_admin": True,
-            "created_at": datetime.utcnow().isoformat()
-        }
-        
-        result = supabase_admin.table("users").insert(admin_data).execute()
+            "email": "hritikmasai@gmail.com"
+        }).eq("username", "ajainhr").execute()
         
         if result.data:
             return '''
-            <h1>Admin user created successfully with proper hashing!</h1>
+            <h1>Admin password updated successfully!</h1>
             <p><strong>Username:</strong> ajainhr</p>
+            <p><strong>Email:</strong> hritikmasai@gmail.com</p>
             <p><strong>Password:</strong> Adinath72*</p>
             <p><strong>Now try logging in again</strong></p>
             <a href="/login">Go to Login</a>
             '''
         else:
-            return "Failed to create admin user"
+            return "Failed to update admin user. User may not exist."
             
     except Exception as e:
         return f"Error: {str(e)}"
