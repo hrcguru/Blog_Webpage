@@ -19,10 +19,11 @@
                 <div class="dropdown">
                     <a href="#" class="nav-link">Categories <i class="fas fa-chevron-down"></i></a>
                     <div class="dropdown-content">
-                        <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}">Esoteric Science</a>
-                        <a href="{{ url_for('category_posts', category_name='Science and Tech') }}">Science & Tech</a>
-                        <a href="{{ url_for('category_posts', category_name='Indian Culture') }}">Indian Culture</a>
-                        <a href="{{ url_for('category_posts', category_name='Spiritual') }}">Spiritual</a>
+                        <!-- FIXED: Changed category_posts to view_category -->
+                        <a href="{{ url_for('view_category', category='Esoteric Science') }}">Esoteric Science</a>
+                        <a href="{{ url_for('view_category', category='Science and Tech') }}">Science & Tech</a>
+                        <a href="{{ url_for('view_category', category='Indian Culture') }}">Indian Culture</a>
+                        <a href="{{ url_for('view_category', category='Spiritual') }}">Spiritual</a>
                     </div>
                 </div>
                 <a href="{{ url_for('contact') }}" class="nav-link">Contact</a>
@@ -84,10 +85,11 @@
             </div>
             <div class="footer-section">
                 <h4>Categories</h4>
-                <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}">Esoteric Science</a>
-                <a href="{{ url_for('category_posts', category_name='Science and Tech') }}">Science & Tech</a>
-                <a href="{{ url_for('category_posts', category_name='Indian Culture') }}">Indian Culture</a>
-                <a href="{{ url_for('category_posts', category_name='Spiritual') }}">Spiritual</a>
+                <!-- FIXED: Changed category_posts to view_category -->
+                <a href="{{ url_for('view_category', category='Esoteric Science') }}">Esoteric Science</a>
+                <a href="{{ url_for('view_category', category='Science and Tech') }}">Science & Tech</a>
+                <a href="{{ url_for('view_category', category='Indian Culture') }}">Indian Culture</a>
+                <a href="{{ url_for('view_category', category='Spiritual') }}">Spiritual</a>
             </div>
             <div class="footer-section">
                 <h4>Quick Links</h4>
