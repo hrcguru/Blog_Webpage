@@ -163,7 +163,7 @@
         <div class="posts-grid" id="posts-container">
             {% for post in posts %}
             <article class="post-card" data-category="{{ post['category'] }}" data-title="{{ post['title']|lower }}" data-date="{{ post['created_at'] }}">
-                <a href="{{ url_for('view_post', post_id=post['id']) }}" class="post-link">
+                <a href="{{ url_for('view_post', id=post['id']) }}" class="post-link">
                     {% if post['image_path'] %}
                     <div class="post-image">
                         <img src="{{ get_image_url(post['image_path']) }}" alt="{{ post['title'] }}" loading="lazy">
@@ -635,3 +635,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {% endblock %}
+
