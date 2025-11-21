@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Upgrade Daily {% endblock %}
+{% block title %}Home - Upgrade Daily{% endblock %}
 
 {% block content %}
 <section class="hero-section">
@@ -10,7 +10,7 @@
                 <div class="hero-badge">
                     <span>✨ Explore Ancient Wisdom & Modern Insights</span>
                 </div>
-                <h1 class="hero-title">Welcome to <span class="gradient-text">Upgrade Daily blogs </span></h1>
+                <h1 class="hero-title">Welcome to <span class="gradient-text">Upgrade Daily blogs</span></h1>
                 <p class="hero-subtitle">Discover fascinating topics across science, technology, culture, and spirituality. Bridge the gap between ancient wisdom and modern insights.</p>
                 {% if not session.user_id %}
                 <div class="hero-buttons">
@@ -78,7 +78,7 @@
                                 </div>
                             </a>
                             
-                            <a href="{{ url_for('admin_dashboard') }}#posts" class="quick-action-card posts-card">
+                            <a href="{{ url_for('admin_dashboard') }}" class="quick-action-card posts-card">
                                 <div class="action-icon">
                                     <i class="fas fa-file-alt"></i>
                                 </div>
@@ -129,7 +129,6 @@
                         <option value="Esoteric Science">Esoteric Science</option>
                         <option value="Science and Tech">Science & Tech</option>
                         <option value="Indian Culture">Indian Culture</option>
-                        <option value="UPSC">UPSC</option>
                         <option value="Spiritual">Spiritual</option>
                         <option value="AboutMe">About Me</option>
                     </select>
@@ -166,7 +165,7 @@
                 <a href="{{ url_for('view_post', id=post['id']) }}" class="post-link">
                     {% if post['image_path'] %}
                     <div class="post-image">
-                        <img src="{{ get_image_url(post['image_path']) }}" alt="{{ post['title'] }}" loading="lazy">
+                        <img src="{{ post['image_path'] }}" alt="{{ post['title'] }}" loading="lazy" onerror="this.style.display='none'">
                         <div class="post-category-badge">{{ post['category'] }}</div>
                     </div>
                     {% else %}
@@ -206,7 +205,8 @@
                 View All Posts in Admin
             </a>
             {% else %}
-            <a href="{{ url_for('category_posts', category_name='Esoteric Science') }}" class="btn btn-outline">
+            <!-- FIXED: Changed category_posts to view_category -->
+            <a href="{{ url_for('view_category', category='Esoteric Science') }}" class="btn btn-outline">
                 <i class="fas fa-book-open"></i>
                 Explore More Posts
             </a>
@@ -525,6 +525,132 @@
     color: var(--accent);
     margin-bottom: 1rem;
 }
+
+/* Auth Section Styles */
+.auth-required-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+}
+
+.auth-message-card {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 3rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    color: var(--text-dark);
+    box-shadow: var(--card-shadow);
+}
+
+.auth-icon {
+    font-size: 4rem;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+}
+
+.auth-title {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.auth-description {
+    color: var(--primary-light);
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+.auth-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+/* Quick Actions */
+.admin-quick-actions {
+    margin-top: 2rem;
+}
+
+.quick-actions-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.quick-actions-header i {
+    color: var(--accent);
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.quick-action-card {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--hover-shadow);
+}
+
+.action-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+    color: var(--primary);
+}
+
+.action-content {
+    flex: 1;
+}
+
+.action-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary);
+}
+
+.action-content p {
+    margin: 0;
+    color: var(--primary-light);
+    font-size: 0.9rem;
+}
+
+.action-arrow {
+    color: var(--primary-light);
+}
+
+.notification-badge {
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
 </style>
 
 <script>
@@ -536,16 +662,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetButton = document.getElementById('reset-filters');
     const postsContainer = document.getElementById('posts-container');
     const resultsCount = document.getElementById('results-count');
-    const postCards = document.querySelectorAll('.post-card');
+    
+    // Get post cards if they exist
+    const postCards = postsContainer ? Array.from(postsContainer.getElementsByClassName('post-card')) : [];
 
     // Initialize results count
     updateResultsCount();
 
     // Add event listeners to filters
-    categoryFilter.addEventListener('change', filterPosts);
-    searchFilter.addEventListener('input', filterPosts);
-    sortFilter.addEventListener('change', sortPosts);
-    resetButton.addEventListener('click', resetFilters);
+    if (categoryFilter) categoryFilter.addEventListener('change', filterPosts);
+    if (searchFilter) searchFilter.addEventListener('input', filterPosts);
+    if (sortFilter) sortFilter.addEventListener('change', sortPosts);
+    if (resetButton) resetButton.addEventListener('click', resetFilters);
 
     function filterPosts() {
         const categoryValue = categoryFilter.value;
@@ -605,16 +733,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function resetFilters() {
-        categoryFilter.value = 'all';
-        searchFilter.value = '';
-        sortFilter.value = 'newest';
+        if (categoryFilter) categoryFilter.value = 'all';
+        if (searchFilter) searchFilter.value = '';
+        if (sortFilter) sortFilter.value = 'newest';
         filterPosts();
         sortPosts();
     }
 
     function updateResultsCount() {
-        const visibleCards = document.querySelectorAll('.post-card:not(.hidden)').length;
-        resultsCount.textContent = visibleCards;
+        if (postsContainer) {
+            const visibleCards = postsContainer.querySelectorAll('.post-card:not(.hidden)').length;
+            if (resultsCount) {
+                resultsCount.textContent = visibleCards;
+            }
+        }
     }
 
     // Make entire post card clickable
@@ -635,4 +767,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {% endblock %}
-
