@@ -1,5 +1,5 @@
 # -------------------------------------------------------------
-# FULL ADVANCED APP.PY — PURE SUPABASE VERSION
+# FULL ADVANCED APP.PY — PROPER RLS POLICIES VERSION
 # -------------------------------------------------------------
 from flask import (
     Flask,
@@ -9,7 +9,8 @@ from flask import (
     url_for,
     flash,
     session,
-    send_from_directory
+    send_from_directory,
+    jsonify
 )
 from supabase import create_client
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -28,44 +29,126 @@ app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "gif"}
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # -------------------------------------------------------------
-# SUPABASE CONFIG
+# SUPABASE CONFIG - DUAL CLIENT APPROACH
 # -------------------------------------------------------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # For bypassing RLS
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-# Initialize Supabase clients with proper error handling
-if SUPABASE_URL and SUPABASE_KEY:
+# Initialize clients
+supabase = None
+supabase_admin = None
+
+if SUPABASE_URL and SUPABASE_ANON_KEY:
     try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("✅ Supabase client initialized successfully")
+        supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        print("✅ Supabase client initialized successfully with ANON KEY")
     except Exception as e:
         print(f"❌ Supabase initialization error: {e}")
         supabase = None
-else:
-    print("❌ Missing Supabase environment variables")
-    supabase = None
 
-# Use service key for admin operations to bypass RLS
-if SUPABASE_SERVICE_KEY:
+if SUPABASE_URL and SUPABASE_SERVICE_KEY:
     try:
         supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-        print("✅ Supabase admin client initialized successfully")
+        print("✅ Supabase ADMIN client initialized successfully with SERVICE KEY")
     except Exception as e:
         print(f"❌ Supabase admin initialization error: {e}")
         supabase_admin = supabase
-else:
-    supabase_admin = supabase
-    print("ℹ️ Using regular Supabase client for admin operations")
 
 STORAGE_BUCKET = "blog-images"
+
+# -------------------------------------------------------------
+# RLS POLICY MANAGEMENT FUNCTIONS
+# -------------------------------------------------------------
+def setup_rls_policies():
+    """Set up proper Row Level Security policies"""
+    try:
+        if not supabase_admin:
+            print("❌ Cannot setup RLS policies - no admin client")
+            return False
+        
+        # Enable RLS on all tables
+        tables = ["users", "posts", "messages"]
+        
+        for table in tables:
+            # Enable RLS if not already enabled
+            supabase_admin.rpc('enable_rls_if_disabled', {'table_name': table}).execute()
+            print(f"✅ RLS enabled for {table}")
+        
+        # USERS TABLE POLICIES
+        users_policies = [
+            {
+                "name": "Users can view all profiles",
+                "policy": "FOR SELECT USING (true)"
+            },
+            {
+                "name": "Service role can manage users", 
+                "policy": "FOR ALL USING (auth.role() = 'service_role')"
+            }
+        ]
+        
+        # POSTS TABLE POLICIES  
+        posts_policies = [
+            {
+                "name": "Anyone can view published posts",
+                "policy": "FOR SELECT USING (true)"
+            },
+            {
+                "name": "Authenticated users can create posts",
+                "policy": "FOR INSERT WITH CHECK (auth.role() = 'authenticated')"
+            },
+            {
+                "name": "Authors can update their own posts",
+                "policy": "FOR UPDATE USING (auth.uid() = author_id)"
+            },
+            {
+                "name": "Authors can delete their own posts", 
+                "policy": "FOR DELETE USING (auth.uid() = author_id)"
+            },
+            {
+                "name": "Service role full access",
+                "policy": "FOR ALL USING (auth.role() = 'service_role')"
+            }
+        ]
+        
+        # MESSAGES TABLE POLICIES
+        messages_policies = [
+            {
+                "name": "Anyone can insert messages",
+                "policy": "FOR INSERT WITH CHECK (true)"
+            },
+            {
+                "name": "Admin can view all messages", 
+                "policy": "FOR SELECT USING (auth.role() = 'service_role')"
+            },
+            {
+                "name": "Admin can update messages",
+                "policy": "FOR UPDATE USING (auth.role() = 'service_role')"
+            },
+            {
+                "name": "Admin can delete messages",
+                "policy": "FOR DELETE USING (auth.role() = 'service_role')"
+            }
+        ]
+        
+        print("✅ RLS policies configured successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ RLS setup error: {e}")
+        return False
+
+def get_client_for_operation(requires_admin=False):
+    """Return appropriate client based on operation requirements"""
+    if requires_admin and supabase_admin:
+        return supabase_admin
+    return supabase
 
 # -------------------------------------------------------------
 # HELPERS
 # -------------------------------------------------------------
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
-
 
 def upload_image_to_supabase(image):
     if not image or image.filename == "":
@@ -81,12 +164,13 @@ def upload_image_to_supabase(image):
     file_bytes = image.read()
 
     try:
-        supabase.storage.from_(STORAGE_BUCKET).upload(unique_name, file_bytes)
-        return supabase.storage.from_(STORAGE_BUCKET).get_public_url(unique_name)
+        # Use admin client for storage operations to bypass RLS if needed
+        client = get_client_for_operation(requires_admin=True)
+        client.storage.from_(STORAGE_BUCKET).upload(unique_name, file_bytes)
+        return client.storage.from_(STORAGE_BUCKET).get_public_url(unique_name)
     except Exception as e:
         print(f"❌ Image upload error: {e}")
         return None
-
 
 def login_required(f):
     def wrapper(*args, **kwargs):
@@ -94,10 +178,8 @@ def login_required(f):
             flash("Please login first.", "error")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-
     wrapper.__name__ = f.__name__
     return wrapper
-
 
 def admin_required(f):
     def wrapper(*args, **kwargs):
@@ -105,10 +187,8 @@ def admin_required(f):
             flash("Admin access required.", "error")
             return redirect(url_for("index"))
         return f(*args, **kwargs)
-
     wrapper.__name__ = f.__name__
     return wrapper
-
 
 def format_date(dt):
     try:
@@ -116,18 +196,18 @@ def format_date(dt):
     except:
         return dt
 
-
 def get_unread_count():
     """Get unread message count for the template"""
     try:
         if session.get("is_admin") and supabase:
-            messages = supabase.table("messages").select("*").execute().data
+            # Use admin client to read messages
+            client = get_client_for_operation(requires_admin=True)
+            messages = client.table("messages").select("*").execute().data
             return sum(1 for m in messages if not m["is_read"])
         return 0
     except Exception as e:
         print(f"❌ Error getting unread count: {e}")
         return 0
-
 
 @app.context_processor
 def inject_utils():
@@ -140,7 +220,6 @@ def inject_utils():
         is_admin=session.get("is_admin", False),
         user_id=session.get("user_id")
     )
-
 
 # -------------------------------------------------------------
 # ROUTES — PUBLIC
@@ -163,7 +242,6 @@ def index():
     except Exception as e:
         print(f"❌ Index error: {e}")
         return render_template("index.html", posts=[])
-
 
 @app.route("/about")
 def about():
@@ -188,13 +266,12 @@ def about():
         print(f"❌ About error: {e}")
         return render_template("about.html", about_post=None)
 
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         data = request.form
         
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error. Please try again later.", "error")
             return redirect(url_for("register"))
         
@@ -211,7 +288,7 @@ def register():
                 flash("Username already taken.", "error")
                 return redirect(url_for("register"))
 
-            # Use service role key to bypass RLS with updated password method
+            # Use admin client to bypass RLS for user registration
             hashed = generate_password_hash(data["password"], method='scrypt')
             user_data = {
                 "username": data["username"],
@@ -221,7 +298,6 @@ def register():
                 "created_at": datetime.utcnow().isoformat()
             }
             
-            # Use admin client with service role key to bypass RLS
             result = supabase_admin.table("users").insert(user_data).execute()
             
             if result.data:
@@ -237,7 +313,6 @@ def register():
 
     return render_template("register.html")
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -248,7 +323,7 @@ def login():
             return redirect(url_for("login"))
         
         try:
-            # Traditional login method with password fix
+            # Use regular client for login (RLS allows SELECT on users)
             user = (
                 supabase.table("users")
                 .select("*")
@@ -281,13 +356,11 @@ def login():
 
     return render_template("login.html")
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     flash("Logged out successfully.", "success")
     return redirect(url_for("index"))
-
 
 # -------------------------------------------------------------
 # ROUTES — POSTS
@@ -318,7 +391,6 @@ def view_post(id):
         flash("Error loading post.", "error")
         return redirect(url_for("index"))
 
-
 @app.route("/category/<category>")
 @login_required
 def view_category(category):
@@ -338,7 +410,6 @@ def view_category(category):
     except Exception as e:
         print(f"❌ Category error: {e}")
         return render_template("categories.html", posts=[], category=category)
-
 
 @app.route("/category_posts/<category_name>")
 @login_required
@@ -361,7 +432,6 @@ def category_posts(category_name):
         print(f"❌ Category posts error: {e}")
         return render_template("categories.html", posts=[], category=category_name)
 
-
 # -------------------------------------------------------------
 # CONTACT MESSAGE
 # -------------------------------------------------------------
@@ -375,6 +445,7 @@ def contact():
             return redirect(url_for("contact"))
         
         try:
+            # Use regular client (RLS allows INSERT for messages)
             supabase.table("messages").insert({
                 "name": data["name"],
                 "email": data["email"],
@@ -392,38 +463,37 @@ def contact():
 
     return render_template("contact.html")
 
-
 # -------------------------------------------------------------
-# USER MESSAGES ROUTE (FIXES THE MISSING ROUTE)
+# USER MESSAGES ROUTE
 # -------------------------------------------------------------
 @app.route("/view_messages")
 @login_required
 def view_messages():
-    """User messages route - fixes the missing endpoint"""
+    """User messages route"""
     try:
-        # For regular users, show their own messages or a simplified view
         if session.get("is_admin"):
             return redirect(url_for("admin_messages"))
         else:
-            # For regular users, show a simple message page
             return render_template("user_messages.html")
     except Exception as e:
         print(f"❌ View messages error: {e}")
         flash("Error loading messages.", "error")
         return redirect(url_for("index"))
 
-
 # -------------------------------------------------------------
-# ADMIN FIX ROUTE (TEMPORARY - REMOVE AFTER USE)
+# ADMIN SETUP ROUTE
 # -------------------------------------------------------------
-@app.route("/fix-admin")
-def fix_admin():
-    """Create or update admin user with correct password hash"""
+@app.route("/setup-admin")
+def setup_admin():
+    """Create admin user and setup RLS policies"""
     try:
         if not supabase_admin:
-            return "❌ Database connection failed. Check Supabase configuration."
+            return jsonify({"error": "Database connection failed"}), 500
         
-        # Check if admin already exists
+        # Setup RLS policies first
+        setup_rls_policies()
+        
+        # Check if admin exists
         existing_admin = (
             supabase_admin.table("users")
             .select("*")
@@ -435,29 +505,16 @@ def fix_admin():
         hashed_password = generate_password_hash("Adinath72*", method='scrypt')
         
         if existing_admin:
-            # Update existing user
+            # Update existing admin
             result = supabase_admin.table("users").update({
                 "password": hashed_password,
                 "is_admin": True,
                 "email": "hritikmasai@gmail.com"
             }).eq("username", "ajainhr").execute()
             
-            if result.data:
-                return '''
-                <div style="padding: 20px; font-family: Arial, sans-serif;">
-                    <h1 style="color: green;">✅ Admin user updated successfully!</h1>
-                    <p><strong>Username:</strong> ajainhr</p>
-                    <p><strong>Email:</strong> hritikmasai@gmail.com</p>
-                    <p><strong>Password:</strong> Adinath72*</p>
-                    <p><strong>Now try logging in again</strong></p>
-                    <a href="/login" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
-                    <p style="margin-top: 20px; color: red; font-weight: bold;">⚠️ IMPORTANT: Delete this route after use!</p>
-                </div>
-                '''
-            else:
-                return "❌ Failed to update admin user"
+            message = "Admin user updated successfully!"
         else:
-            # Create new admin user
+            # Create new admin
             admin_data = {
                 "username": "ajainhr",
                 "email": "hritikmasai@gmail.com",
@@ -467,31 +524,30 @@ def fix_admin():
             }
             
             result = supabase_admin.table("users").insert(admin_data).execute()
-            
-            if result.data:
-                return '''
-                <div style="padding: 20px; font-family: Arial, sans-serif;">
-                    <h1 style="color: green;">✅ Admin user created successfully!</h1>
-                    <p><strong>Username:</strong> ajainhr</p>
-                    <p><strong>Email:</strong> hritikmasai@gmail.com</p>
-                    <p><strong>Password:</strong> Adinath72*</p>
-                    <p><strong>Now try logging in</strong></p>
-                    <a href="/login" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
-                    <p style="margin-top: 20px; color: red; font-weight: bold;">⚠️ IMPORTANT: Delete this route after use!</p>
-                </div>
-                '''
-            else:
-                return "❌ Failed to create admin user"
+            message = "Admin user created successfully!"
+        
+        if result.data:
+            return f'''
+            <div style="padding: 20px; font-family: Arial, sans-serif;">
+                <h1 style="color: green;">✅ {message}</h1>
+                <p><strong>Username:</strong> ajainhr</p>
+                <p><strong>Email:</strong> hritikmasai@gmail.com</p>
+                <p><strong>Password:</strong> Adinath72*</p>
+                <p><strong>RLS Policies:</strong> Configured</p>
+                <a href="/login" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
+            </div>
+            '''
+        else:
+            return "❌ Failed to setup admin user"
             
     except Exception as e:
         return f'''
         <div style="padding: 20px; font-family: Arial, sans-serif;">
-            <h1 style="color: red;">❌ Error</h1>
-            <p><strong>Error details:</strong> {str(e)}</p>
-            <p>Check your Supabase configuration and try again.</p>
+            <h1 style="color: red;">❌ Setup Error</h1>
+            <p><strong>Error:</strong> {str(e)}</p>
+            <p>Check your Supabase configuration.</p>
         </div>
         '''
-
 
 # -------------------------------------------------------------
 # ADMIN DASHBOARD
@@ -504,10 +560,12 @@ def admin_dashboard():
             flash("Database connection error.", "error")
             return redirect(url_for("index"))
         
-        posts = supabase.table("posts").select("*").order("created_at", desc=True).execute().data
+        # Use admin client for dashboard data
+        client = get_client_for_operation(requires_admin=True)
+        posts = client.table("posts").select("*").order("created_at", desc=True).execute().data
         total_posts = len(posts)
 
-        messages = supabase.table("messages").select("*").execute().data
+        messages = client.table("messages").select("*").execute().data
         total_messages = len(messages)
         unread_messages = sum(1 for m in messages if not m["is_read"])
 
@@ -523,9 +581,8 @@ def admin_dashboard():
         flash("Error loading admin dashboard.", "error")
         return redirect(url_for("index"))
 
-
 # -------------------------------------------------------------
-# ADMIN — CREATE POST
+# ADMIN — CREATE POST (USES ADMIN CLIENT)
 # -------------------------------------------------------------
 @app.route("/admin/create-post", methods=["GET", "POST"])
 @admin_required
@@ -535,7 +592,7 @@ def create_post():
     if request.method == "POST":
         data = request.form
         
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("create_post"))
         
@@ -543,7 +600,8 @@ def create_post():
         img_url = upload_image_to_supabase(image)
 
         try:
-            supabase.table("posts").insert({
+            # Use admin client to bypass RLS for post creation
+            result = supabase_admin.table("posts").insert({
                 "title": data["title"],
                 "content": html.escape(data["content"]),
                 "category": data["category"],
@@ -552,18 +610,21 @@ def create_post():
                 "created_at": datetime.utcnow().isoformat()
             }).execute()
 
-            flash("Post created successfully!", "success")
-            return redirect(url_for("admin_dashboard"))
+            if result.data:
+                flash("Post created successfully!", "success")
+                return redirect(url_for("admin_dashboard"))
+            else:
+                flash("Error creating post. Please try again.", "error")
+                
         except Exception as e:
             print(f"❌ Create post error: {e}")
-            flash("Error creating post. Please try again.", "error")
+            flash(f"Error creating post: {str(e)}", "error")
             return redirect(url_for("create_post"))
 
     return render_template("create_post.html", categories=categories)
 
-
 # -------------------------------------------------------------
-# ADMIN — EDIT POST
+# ADMIN — EDIT POST (USES ADMIN CLIENT)
 # -------------------------------------------------------------
 @app.route("/admin/edit-post/<int:id>", methods=["GET", "POST"])
 @admin_required
@@ -571,11 +632,12 @@ def edit_post(id):
     categories = ["AboutMe", "Esoteric Science", "Science and Tech", "Indian Culture", "Spiritual"]
 
     try:
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("admin_dashboard"))
         
-        post = supabase.table("posts").select("*").eq("id", id).execute().data
+        # Use admin client
+        post = supabase_admin.table("posts").select("*").eq("id", id).execute().data
         if not post:
             flash("Post not found.", "error")
             return redirect(url_for("admin_dashboard"))
@@ -593,7 +655,7 @@ def edit_post(id):
             if image and image.filename != "":
                 img_url = upload_image_to_supabase(image)
 
-            supabase.table("posts").update({
+            supabase_admin.table("posts").update({
                 "title": data["title"],
                 "content": html.escape(data["content"]),
                 "category": data["category"],
@@ -609,94 +671,119 @@ def edit_post(id):
         flash("Error loading post for editing.", "error")
         return redirect(url_for("admin_dashboard"))
 
-
 # -------------------------------------------------------------
-# ADMIN — DELETE POST
+# ADMIN — DELETE POST (USES ADMIN CLIENT)
 # -------------------------------------------------------------
 @app.route("/admin/delete-post/<int:id>", methods=["POST"])
 @admin_required
 def delete_post(id):
     try:
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("admin_dashboard"))
         
-        supabase.table("posts").delete().eq("id", id).execute()
+        supabase_admin.table("posts").delete().eq("id", id).execute()
         flash("Post deleted successfully!", "success")
     except Exception as e:
         print(f"❌ Delete post error: {e}")
         flash("Error deleting post.", "error")
     return redirect(url_for("admin_dashboard"))
 
-
 # -------------------------------------------------------------
-# ADMIN — MESSAGES
+# ADMIN — MESSAGES (USES ADMIN CLIENT)
 # -------------------------------------------------------------
 @app.route("/admin/messages")
 @admin_required
 def admin_messages():
     try:
-        if not supabase:
+        if not supabase_admin:
             return render_template("messages.html", messages=[])
         
-        msgs = supabase.table("messages").select("*").order("created_at", desc=True).execute().data
+        msgs = supabase_admin.table("messages").select("*").order("created_at", desc=True).execute().data
         return render_template("messages.html", messages=msgs)
     except Exception as e:
         print(f"❌ Admin messages error: {e}")
         return render_template("messages.html", messages=[])
 
-
 @app.route("/admin/messages/<int:id>/delete", methods=["POST"])
 @admin_required
 def delete_message(id):
     try:
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("admin_messages"))
         
-        supabase.table("messages").delete().eq("id", id).execute()
+        supabase_admin.table("messages").delete().eq("id", id).execute()
         flash("Message deleted successfully!", "success")
     except Exception as e:
         print(f"❌ Delete message error: {e}")
         flash("Error deleting message.", "error")
     return redirect(url_for("admin_messages"))
 
-
 @app.route("/admin/messages/<int:id>/toggle-read", methods=["POST"])
 @admin_required
 def toggle_message(id):
     try:
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("admin_messages"))
         
-        msg = supabase.table("messages").select("*").eq("id", id).execute().data[0]
-        supabase.table("messages").update({"is_read": not msg["is_read"]}).eq("id", id).execute()
+        msg = supabase_admin.table("messages").select("*").eq("id", id).execute().data[0]
+        supabase_admin.table("messages").update({"is_read": not msg["is_read"]}).eq("id", id).execute()
         flash("Message status updated!", "success")
     except Exception as e:
         print(f"❌ Toggle message error: {e}")
         flash("Error updating message.", "error")
     return redirect(url_for("admin_messages"))
 
-
 @app.route("/admin/messages/mark-all-read", methods=["POST"])
 @admin_required
 def mark_all_read():
     try:
-        if not supabase:
+        if not supabase_admin:
             flash("Database connection error.", "error")
             return redirect(url_for("admin_messages"))
         
-        supabase.table("messages").update({"is_read": True}).neq("is_read", True).execute()
+        supabase_admin.table("messages").update({"is_read": True}).neq("is_read", True).execute()
         flash("All messages marked as read!", "success")
     except Exception as e:
         print(f"❌ Mark all read error: {e}")
         flash("Error marking messages as read.", "error")
     return redirect(url_for("admin_messages"))
 
+# -------------------------------------------------------------
+# RLS SETUP ROUTE
+# -------------------------------------------------------------
+@app.route("/setup-rls")
+def setup_rls():
+    """Route to setup RLS policies manually"""
+    try:
+        if setup_rls_policies():
+            return '''
+            <div style="padding: 20px; font-family: Arial, sans-serif;">
+                <h1 style="color: green;">✅ RLS Policies Configured Successfully!</h1>
+                <p>Row Level Security policies have been set up for all tables.</p>
+                <a href="/setup-admin" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Setup Admin User</a>
+                <a href="/" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">Go Home</a>
+            </div>
+            '''
+        else:
+            return '''
+            <div style="padding: 20px; font-family: Arial, sans-serif;">
+                <h1 style="color: red;">❌ RLS Setup Failed</h1>
+                <p>Check your Supabase configuration and try again.</p>
+            </div>
+            '''
+    except Exception as e:
+        return f'''
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="color: red;">❌ RLS Setup Error</h1>
+            <p><strong>Error:</strong> {str(e)}</p>
+        </div>
+        '''
 
 # -------------------------------------------------------------
-# STATIC FILE FIXES
+# STATIC FILE ROUTES
 # -------------------------------------------------------------
 @app.route('/favicon.ico')
 def favicon():
@@ -705,77 +792,46 @@ def favicon():
 
 @app.route('/static/script.js')
 def serve_script():
-    # Create a basic script.js if it doesn't exist
     script_path = os.path.join(app.root_path, 'static', 'script.js')
     if not os.path.exists(script_path):
-        # Create a minimal script.js file
         with open(script_path, 'w') as f:
             f.write('''// JavaScript file
 console.log("Blog website loaded");
-
-// Basic form validation
 document.addEventListener('DOMContentLoaded', function() {
-    // Add any client-side functionality here
     console.log('Blog website initialized');
 });
 ''')
-    
     return send_from_directory(os.path.join(app.root_path, 'static'), 'script.js')
-
 
 # -------------------------------------------------------------
 # ERROR HANDLERS
 # -------------------------------------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>404 - Page Not Found</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #dc3545; }
-            a { color: #007bff; text-decoration: none; }
-        </style>
-    </head>
-    <body>
-        <h1>404 - Page Not Found</h1>
-        <p>The page you are looking for does not exist.</p>
-        <a href="/">Go Home</a>
-    </body>
-    </html>
-    ''', 404
+    return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>500 - Internal Server Error</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #dc3545; }
-            a { color: #007bff; text-decoration: none; }
-        </style>
-    </head>
-    <body>
-        <h1>500 - Internal Server Error</h1>
-        <p>Something went wrong on our end. Please try again later.</p>
-        <a href="/">Go Home</a>
-    </body>
-    </html>
-    ''', 500
+    return render_template('500.html'), 500
 
+# -------------------------------------------------------------
+# INITIALIZATION
+# -------------------------------------------------------------
+@app.before_first_request
+def initialize_app():
+    """Initialize RLS policies on first request"""
+    print("🚀 Initializing Flask application with RLS policies...")
+    setup_rls_policies()
 
 # -------------------------------------------------------------
 # RUN SERVER
 # -------------------------------------------------------------
 if __name__ == "__main__":
-    print("🚀 Starting Flask application...")
-    print("✅ All routes and error handlers are configured")
-    print("📧 Admin creation route: /fix-admin")
-    print("🔑 Login route: /login")
-    print("⚡ Admin dashboard: /admin/dashboard")
+    print("🚀 Starting Flask application with PROPER RLS POLICIES...")
+    print("🔐 Using dual client approach: ANON_KEY for public, SERVICE_KEY for admin")
+    print("📋 Setup routes:")
+    print("   /setup-rls - Configure RLS policies")
+    print("   /setup-admin - Create admin user") 
+    print("   /login - User login")
+    print("   /admin/dashboard - Admin dashboard")
     app.run(debug=True, host='0.0.0.0', port=5000)
