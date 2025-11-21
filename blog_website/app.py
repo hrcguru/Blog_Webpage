@@ -10,11 +10,12 @@ from flask import (
     flash,
     session,
     send_from_directory,
+    jsonify
 )
 from supabase import create_client
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os, uuid, html
+import os, uuid, html, requests
 from datetime import datetime
 
 # -------------------------------------------------------------
@@ -32,8 +33,12 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 # -------------------------------------------------------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # For bypassing RLS
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 STORAGE_BUCKET = "blog-images"
+
+# Use service key for admin operations to bypass RLS
+supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else supabase
 
 # -------------------------------------------------------------
 # HELPERS
@@ -111,8 +116,7 @@ def index():
 
 @app.route("/about")
 def about():
-    """About page route - FIXES THE ERROR"""
-    # You can fetch about content from database or use static content
+    """About page route"""
     about_posts = (
         supabase.table("posts")
         .select("*, users(username)")
@@ -131,8 +135,8 @@ def about():
 def register():
     if request.method == "POST":
         data = request.form
-        hashed = generate_password_hash(data["password"])
-
+        
+        # Check if username already exists
         exists = (
             supabase.table("users")
             .select("*")
@@ -144,16 +148,30 @@ def register():
             flash("Username already taken.", "error")
             return redirect(url_for("register"))
 
-        supabase.table("users").insert({
-            "username": data["username"],
-            "email": data["email"],
-            "password": hashed,
-            "is_admin": False,
-            "created_at": datetime.utcnow().isoformat()
-        }).execute()
-
-        flash("Registered successfully.", "success")
-        return redirect(url_for("login"))
+        # Use service role key to bypass RLS with updated password method
+        try:
+            # Use 'scrypt' method instead of deprecated method
+            hashed = generate_password_hash(data["password"], method='scrypt')
+            user_data = {
+                "username": data["username"],
+                "email": data["email"],
+                "password": hashed,
+                "is_admin": False,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            # Use admin client with service role key to bypass RLS
+            result = supabase_admin.table("users").insert(user_data).execute()
+            
+            if result.data:
+                flash("Registered successfully.", "success")
+                return redirect(url_for("login"))
+            else:
+                flash("Registration failed. Please try again.", "error")
+                
+        except Exception as e:
+            flash(f"Registration error: {str(e)}", "error")
+            return redirect(url_for("register"))
 
     return render_template("register.html")
 
@@ -162,6 +180,8 @@ def register():
 def login():
     if request.method == "POST":
         data = request.form
+        
+        # Traditional login method with password fix
         user = (
             supabase.table("users")
             .select("*")
@@ -169,20 +189,28 @@ def login():
             .execute()
             .data
         )
+        
         if not user:
             flash("Invalid username or password.", "error")
             return redirect(url_for("login"))
 
         user = user[0]
 
-        if not check_password_hash(user["password"], data["password"]):
-            flash("Invalid username or password.", "error")
+        # FIXED: Use the same method that was used for hashing
+        try:
+            # First try with scrypt method
+            if not check_password_hash(user["password"], data["password"]):
+                flash("Invalid username or password.", "error")
+                return redirect(url_for("login"))
+        except Exception as e:
+            # If that fails, there might be an issue with the hash
+            flash("Login error. Please contact administrator.", "error")
             return redirect(url_for("login"))
 
         session["user_id"] = user["id"]
         session["username"] = user["username"]
         session["is_admin"] = user["is_admin"]
-
+        flash("Login successful!", "success")
         return redirect(url_for("index"))
 
     return render_template("login.html")
@@ -230,7 +258,6 @@ def view_category(category):
     return render_template("categories.html", posts=posts, category=category)
 
 
-# ADD THIS NEW ROUTE TO FIX THE CATEGORY_POSTS ERROR
 @app.route("/category_posts/<category_name>")
 @login_required
 def category_posts(category_name):
@@ -401,6 +428,72 @@ def mark_all_read():
     flash("All messages marked read.", "success")
     return redirect(url_for("admin_messages"))
 
+
+# -------------------------------------------------------------
+# ADMIN CREATION ROUTE (TEMPORARY - REMOVE AFTER USE)
+# -------------------------------------------------------------
+@app.route("/create-admin-user")
+def create_admin_user():
+    """One-time route to create admin user"""
+    try:
+        # Check if admin already exists
+        existing_admin = (
+            supabase_admin.table("users")
+            .select("*")
+            .eq("username", "ajainhr")
+            .execute()
+            .data
+        )
+        
+        if existing_admin:
+            return "Admin user 'ajainhr' already exists!"
+        
+        # Create admin user with scrypt method
+        hashed_password = generate_password_hash("Adinath72*", method='scrypt')
+        admin_data = {
+            "username": "ajainhr",
+            "email": "ajainhr@example.com",
+            "password": hashed_password,
+            "is_admin": True,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        result = supabase_admin.table("users").insert(admin_data).execute()
+        
+        if result.data:
+            return '''
+            <h1>Admin user created successfully!</h1>
+            <p><strong>Username:</strong> ajainhr</p>
+            <p><strong>Password:</strong> Adinath72*</p>
+            <p><strong>Admin Access:</strong> Yes</p>
+            <p><strong>IMPORTANT:</strong> Delete this route after use!</p>
+            <a href="/login">Go to Login</a>
+            '''
+        else:
+            return "Failed to create admin user"
+            
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# -------------------------------------------------------------
+# STATIC FILE FIXES
+# -------------------------------------------------------------
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                             'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+@app.route('/static/script.js')
+def serve_script():
+    # Create a basic script.js if it doesn't exist
+    script_path = os.path.join(app.root_path, 'static', 'script.js')
+    if not os.path.exists(script_path):
+        # Create a minimal script.js file
+        with open(script_path, 'w') as f:
+            f.write('// JavaScript file\nconsole.log("Blog website loaded");')
+    
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'script.js')
 
 # -------------------------------------------------------------
 # RUN SERVER
