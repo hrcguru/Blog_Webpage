@@ -293,6 +293,87 @@ def contact():
 
 
 # -------------------------------------------------------------
+# ADMIN CREATION ROUTES (TEMPORARY - REMOVE AFTER USE)
+# -------------------------------------------------------------
+@app.route("/create-admin-user")
+def create_admin_user():
+    """One-time route to create admin user"""
+    try:
+        # Check if admin already exists
+        existing_admin = (
+            supabase_admin.table("users")
+            .select("*")
+            .eq("username", "ajainhr")
+            .execute()
+            .data
+        )
+        
+        if existing_admin:
+            return "Admin user 'ajainhr' already exists!"
+        
+        # Create admin user with scrypt method
+        hashed_password = generate_password_hash("Adinath72*", method='scrypt')
+        admin_data = {
+            "username": "ajainhr",
+            "email": "ajainhr@example.com",
+            "password": hashed_password,
+            "is_admin": True,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        result = supabase_admin.table("users").insert(admin_data).execute()
+        
+        if result.data:
+            return '''
+            <h1>Admin user created successfully!</h1>
+            <p><strong>Username:</strong> ajainhr</p>
+            <p><strong>Password:</strong> Adinath72*</p>
+            <p><strong>Admin Access:</strong> Yes</p>
+            <p><strong>IMPORTANT:</strong> Delete this route after use!</p>
+            <a href="/login">Go to Login</a>
+            '''
+        else:
+            return "Failed to create admin user"
+            
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@app.route("/fix-admin")
+def fix_admin():
+    """Create a properly hashed admin user"""
+    try:
+        # Delete existing admin if exists
+        supabase_admin.table("users").delete().eq("username", "ajainhr").execute()
+        
+        # Create admin user with correct hashing
+        hashed_password = generate_password_hash("Adinath72*", method='scrypt')
+        admin_data = {
+            "username": "ajainhr",
+            "email": "ajainhr@example.com",
+            "password": hashed_password,
+            "is_admin": True,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        result = supabase_admin.table("users").insert(admin_data).execute()
+        
+        if result.data:
+            return '''
+            <h1>Admin user created successfully with proper hashing!</h1>
+            <p><strong>Username:</strong> ajainhr</p>
+            <p><strong>Password:</strong> Adinath72*</p>
+            <p><strong>Now try logging in again</strong></p>
+            <a href="/login">Go to Login</a>
+            '''
+        else:
+            return "Failed to create admin user"
+            
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# -------------------------------------------------------------
 # ADMIN DASHBOARD
 # -------------------------------------------------------------
 @app.route("/admin/dashboard")
@@ -425,53 +506,6 @@ def mark_all_read():
     supabase.table("messages").update({"is_read": True}).neq("is_read", True).execute()
     flash("All messages marked read.", "success")
     return redirect(url_for("admin_messages"))
-
-
-# -------------------------------------------------------------
-# ADMIN CREATION ROUTE (TEMPORARY - REMOVE AFTER USE)
-# -------------------------------------------------------------
-@app.route("/create-admin-user")
-def create_admin_user():
-    """One-time route to create admin user"""
-    try:
-        # Check if admin already exists
-        existing_admin = (
-            supabase_admin.table("users")
-            .select("*")
-            .eq("username", "ajainhr")
-            .execute()
-            .data
-        )
-        
-        if existing_admin:
-            return "Admin user 'ajainhr' already exists!"
-        
-        # Create admin user with scrypt method
-        hashed_password = generate_password_hash("Adinath72*", method='scrypt')
-        admin_data = {
-            "username": "ajainhr",
-            "email": "ajainhr@example.com",
-            "password": hashed_password,
-            "is_admin": True,
-            "created_at": datetime.utcnow().isoformat()
-        }
-        
-        result = supabase_admin.table("users").insert(admin_data).execute()
-        
-        if result.data:
-            return '''
-            <h1>Admin user created successfully!</h1>
-            <p><strong>Username:</strong> ajainhr</p>
-            <p><strong>Password:</strong> Adinath72*</p>
-            <p><strong>Admin Access:</strong> Yes</p>
-            <p><strong>IMPORTANT:</strong> Delete this route after use!</p>
-            <a href="/login">Go to Login</a>
-            '''
-        else:
-            return "Failed to create admin user"
-            
-    except Exception as e:
-        return f"Error: {str(e)}"
 
 
 # -------------------------------------------------------------
