@@ -21,7 +21,7 @@ from datetime import datetime
 # FLASK APP CORE CONFIG
 # -------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret-key-12345")
+app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret-key-12345-change-in-production")
 
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "gif"}
@@ -34,18 +34,29 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # For bypassing RLS
 
-# Initialize Supabase clients
+# Initialize Supabase clients with proper error handling
 if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase client initialized successfully")
+    except Exception as e:
+        print(f"❌ Supabase initialization error: {e}")
+        supabase = None
 else:
-    # Fallback for development
+    print("❌ Missing Supabase environment variables")
     supabase = None
 
 # Use service key for admin operations to bypass RLS
 if SUPABASE_SERVICE_KEY:
-    supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    try:
+        supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        print("✅ Supabase admin client initialized successfully")
+    except Exception as e:
+        print(f"❌ Supabase admin initialization error: {e}")
+        supabase_admin = supabase
 else:
     supabase_admin = supabase
+    print("ℹ️ Using regular Supabase client for admin operations")
 
 STORAGE_BUCKET = "blog-images"
 
@@ -73,7 +84,7 @@ def upload_image_to_supabase(image):
         supabase.storage.from_(STORAGE_BUCKET).upload(unique_name, file_bytes)
         return supabase.storage.from_(STORAGE_BUCKET).get_public_url(unique_name)
     except Exception as e:
-        print(f"Image upload error: {e}")
+        print(f"❌ Image upload error: {e}")
         return None
 
 
@@ -106,9 +117,29 @@ def format_date(dt):
         return dt
 
 
+def get_unread_count():
+    """Get unread message count for the template"""
+    try:
+        if session.get("is_admin") and supabase:
+            messages = supabase.table("messages").select("*").execute().data
+            return sum(1 for m in messages if not m["is_read"])
+        return 0
+    except Exception as e:
+        print(f"❌ Error getting unread count: {e}")
+        return 0
+
+
 @app.context_processor
 def inject_utils():
-    return dict(format_date=format_date)
+    """Inject variables into all templates"""
+    unread_count = get_unread_count() if session.get("user_id") else 0
+    return dict(
+        format_date=format_date,
+        unread_count=unread_count,
+        current_user=session.get("username"),
+        is_admin=session.get("is_admin", False),
+        user_id=session.get("user_id")
+    )
 
 
 # -------------------------------------------------------------
@@ -117,6 +148,9 @@ def inject_utils():
 @app.route("/")
 def index():
     try:
+        if not supabase:
+            return render_template("index.html", posts=[], error="Database connection failed")
+        
         posts = (
             supabase.table("posts")
             .select("*, users(username)")
@@ -127,7 +161,7 @@ def index():
         )
         return render_template("index.html", posts=posts)
     except Exception as e:
-        print(f"Index error: {e}")
+        print(f"❌ Index error: {e}")
         return render_template("index.html", posts=[])
 
 
@@ -135,6 +169,9 @@ def index():
 def about():
     """About page route"""
     try:
+        if not supabase:
+            return render_template("about.html", about_post=None)
+        
         about_posts = (
             supabase.table("posts")
             .select("*, users(username)")
@@ -148,7 +185,7 @@ def about():
         about_post = about_posts[0] if about_posts else None
         return render_template("about.html", about_post=about_post)
     except Exception as e:
-        print(f"About error: {e}")
+        print(f"❌ About error: {e}")
         return render_template("about.html", about_post=None)
 
 
@@ -156,6 +193,10 @@ def about():
 def register():
     if request.method == "POST":
         data = request.form
+        
+        if not supabase:
+            flash("Database connection error. Please try again later.", "error")
+            return redirect(url_for("register"))
         
         # Check if username already exists
         try:
@@ -184,12 +225,13 @@ def register():
             result = supabase_admin.table("users").insert(user_data).execute()
             
             if result.data:
-                flash("Registered successfully.", "success")
+                flash("Registered successfully. Please login.", "success")
                 return redirect(url_for("login"))
             else:
                 flash("Registration failed. Please try again.", "error")
                 
         except Exception as e:
+            print(f"❌ Registration error: {e}")
             flash(f"Registration error: {str(e)}", "error")
             return redirect(url_for("register"))
 
@@ -200,6 +242,10 @@ def register():
 def login():
     if request.method == "POST":
         data = request.form
+        
+        if not supabase:
+            flash("Database connection error. Please try again later.", "error")
+            return redirect(url_for("login"))
         
         try:
             # Traditional login method with password fix
@@ -229,7 +275,7 @@ def login():
                 return redirect(url_for("login"))
                 
         except Exception as e:
-            print(f"Login error: {e}")
+            print(f"❌ Login error: {e}")
             flash("Login error. Please try again.", "error")
             return redirect(url_for("login"))
 
@@ -239,7 +285,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Logged out.", "success")
+    flash("Logged out successfully.", "success")
     return redirect(url_for("index"))
 
 
@@ -250,6 +296,10 @@ def logout():
 @login_required
 def view_post(id):
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("index"))
+        
         post = (
             supabase.table("posts")
             .select("*, users(username)")
@@ -264,6 +314,7 @@ def view_post(id):
 
         return render_template("post.html", post=post[0])
     except Exception as e:
+        print(f"❌ View post error: {e}")
         flash("Error loading post.", "error")
         return redirect(url_for("index"))
 
@@ -272,6 +323,9 @@ def view_post(id):
 @login_required
 def view_category(category):
     try:
+        if not supabase:
+            return render_template("categories.html", posts=[], category=category)
+        
         posts = (
             supabase.table("posts")
             .select("*, users(username)")
@@ -282,6 +336,7 @@ def view_category(category):
         )
         return render_template("categories.html", posts=posts, category=category)
     except Exception as e:
+        print(f"❌ Category error: {e}")
         return render_template("categories.html", posts=[], category=category)
 
 
@@ -290,6 +345,9 @@ def view_category(category):
 def category_posts(category_name):
     """Alternative category route that matches the template"""
     try:
+        if not supabase:
+            return render_template("categories.html", posts=[], category=category_name)
+        
         posts = (
             supabase.table("posts")
             .select("*, users(username)")
@@ -300,6 +358,7 @@ def category_posts(category_name):
         )
         return render_template("categories.html", posts=posts, category=category_name)
     except Exception as e:
+        print(f"❌ Category posts error: {e}")
         return render_template("categories.html", posts=[], category=category_name)
 
 
@@ -310,6 +369,11 @@ def category_posts(category_name):
 def contact():
     if request.method == "POST":
         data = request.form
+        
+        if not supabase:
+            flash("Database connection error. Please try again later.", "error")
+            return redirect(url_for("contact"))
+        
         try:
             supabase.table("messages").insert({
                 "name": data["name"],
@@ -319,10 +383,11 @@ def contact():
                 "is_read": False
             }).execute()
 
-            flash("Message sent!", "success")
+            flash("Message sent successfully!", "success")
             return redirect(url_for("contact"))
         except Exception as e:
-            flash("Error sending message.", "error")
+            print(f"❌ Contact form error: {e}")
+            flash("Error sending message. Please try again.", "error")
             return redirect(url_for("contact"))
 
     return render_template("contact.html")
@@ -343,6 +408,7 @@ def view_messages():
             # For regular users, show a simple message page
             return render_template("user_messages.html")
     except Exception as e:
+        print(f"❌ View messages error: {e}")
         flash("Error loading messages.", "error")
         return redirect(url_for("index"))
 
@@ -354,6 +420,9 @@ def view_messages():
 def fix_admin():
     """Create or update admin user with correct password hash"""
     try:
+        if not supabase_admin:
+            return "❌ Database connection failed. Check Supabase configuration."
+        
         # Check if admin already exists
         existing_admin = (
             supabase_admin.table("users")
@@ -375,15 +444,18 @@ def fix_admin():
             
             if result.data:
                 return '''
-                <h1>Admin user updated successfully!</h1>
-                <p><strong>Username:</strong> ajainhr</p>
-                <p><strong>Email:</strong> hritikmasai@gmail.com</p>
-                <p><strong>Password:</strong> Adinath72*</p>
-                <p><strong>Now try logging in again</strong></p>
-                <a href="/login">Go to Login</a>
+                <div style="padding: 20px; font-family: Arial, sans-serif;">
+                    <h1 style="color: green;">✅ Admin user updated successfully!</h1>
+                    <p><strong>Username:</strong> ajainhr</p>
+                    <p><strong>Email:</strong> hritikmasai@gmail.com</p>
+                    <p><strong>Password:</strong> Adinath72*</p>
+                    <p><strong>Now try logging in again</strong></p>
+                    <a href="/login" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
+                    <p style="margin-top: 20px; color: red; font-weight: bold;">⚠️ IMPORTANT: Delete this route after use!</p>
+                </div>
                 '''
             else:
-                return "Failed to update admin user"
+                return "❌ Failed to update admin user"
         else:
             # Create new admin user
             admin_data = {
@@ -398,18 +470,27 @@ def fix_admin():
             
             if result.data:
                 return '''
-                <h1>Admin user created successfully!</h1>
-                <p><strong>Username:</strong> ajainhr</p>
-                <p><strong>Email:</strong> hritikmasai@gmail.com</p>
-                <p><strong>Password:</strong> Adinath72*</p>
-                <p><strong>Now try logging in</strong></p>
-                <a href="/login">Go to Login</a>
+                <div style="padding: 20px; font-family: Arial, sans-serif;">
+                    <h1 style="color: green;">✅ Admin user created successfully!</h1>
+                    <p><strong>Username:</strong> ajainhr</p>
+                    <p><strong>Email:</strong> hritikmasai@gmail.com</p>
+                    <p><strong>Password:</strong> Adinath72*</p>
+                    <p><strong>Now try logging in</strong></p>
+                    <a href="/login" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
+                    <p style="margin-top: 20px; color: red; font-weight: bold;">⚠️ IMPORTANT: Delete this route after use!</p>
+                </div>
                 '''
             else:
-                return "Failed to create admin user"
+                return "❌ Failed to create admin user"
             
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f'''
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="color: red;">❌ Error</h1>
+            <p><strong>Error details:</strong> {str(e)}</p>
+            <p>Check your Supabase configuration and try again.</p>
+        </div>
+        '''
 
 
 # -------------------------------------------------------------
@@ -419,6 +500,10 @@ def fix_admin():
 @admin_required
 def admin_dashboard():
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("index"))
+        
         posts = supabase.table("posts").select("*").order("created_at", desc=True).execute().data
         total_posts = len(posts)
 
@@ -434,6 +519,7 @@ def admin_dashboard():
             unread_messages=unread_messages,
         )
     except Exception as e:
+        print(f"❌ Admin dashboard error: {e}")
         flash("Error loading admin dashboard.", "error")
         return redirect(url_for("index"))
 
@@ -448,6 +534,11 @@ def create_post():
 
     if request.method == "POST":
         data = request.form
+        
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("create_post"))
+        
         image = request.files.get("image")
         img_url = upload_image_to_supabase(image)
 
@@ -461,10 +552,11 @@ def create_post():
                 "created_at": datetime.utcnow().isoformat()
             }).execute()
 
-            flash("Post created!", "success")
+            flash("Post created successfully!", "success")
             return redirect(url_for("admin_dashboard"))
         except Exception as e:
-            flash("Error creating post.", "error")
+            print(f"❌ Create post error: {e}")
+            flash("Error creating post. Please try again.", "error")
             return redirect(url_for("create_post"))
 
     return render_template("create_post.html", categories=categories)
@@ -479,6 +571,10 @@ def edit_post(id):
     categories = ["AboutMe", "Esoteric Science", "Science and Tech", "Indian Culture", "Spiritual"]
 
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_dashboard"))
+        
         post = supabase.table("posts").select("*").eq("id", id).execute().data
         if not post:
             flash("Post not found.", "error")
@@ -504,11 +600,12 @@ def edit_post(id):
                 "image_path": img_url
             }).eq("id", id).execute()
 
-            flash("Post updated.", "success")
+            flash("Post updated successfully!", "success")
             return redirect(url_for("admin_dashboard"))
 
         return render_template("edit_post.html", post=post, categories=categories)
     except Exception as e:
+        print(f"❌ Edit post error: {e}")
         flash("Error loading post for editing.", "error")
         return redirect(url_for("admin_dashboard"))
 
@@ -520,9 +617,14 @@ def edit_post(id):
 @admin_required
 def delete_post(id):
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_dashboard"))
+        
         supabase.table("posts").delete().eq("id", id).execute()
-        flash("Post deleted.", "success")
+        flash("Post deleted successfully!", "success")
     except Exception as e:
+        print(f"❌ Delete post error: {e}")
         flash("Error deleting post.", "error")
     return redirect(url_for("admin_dashboard"))
 
@@ -534,9 +636,13 @@ def delete_post(id):
 @admin_required
 def admin_messages():
     try:
+        if not supabase:
+            return render_template("messages.html", messages=[])
+        
         msgs = supabase.table("messages").select("*").order("created_at", desc=True).execute().data
         return render_template("messages.html", messages=msgs)
     except Exception as e:
+        print(f"❌ Admin messages error: {e}")
         return render_template("messages.html", messages=[])
 
 
@@ -544,9 +650,14 @@ def admin_messages():
 @admin_required
 def delete_message(id):
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_messages"))
+        
         supabase.table("messages").delete().eq("id", id).execute()
-        flash("Message deleted.", "success")
+        flash("Message deleted successfully!", "success")
     except Exception as e:
+        print(f"❌ Delete message error: {e}")
         flash("Error deleting message.", "error")
     return redirect(url_for("admin_messages"))
 
@@ -555,10 +666,15 @@ def delete_message(id):
 @admin_required
 def toggle_message(id):
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_messages"))
+        
         msg = supabase.table("messages").select("*").eq("id", id).execute().data[0]
         supabase.table("messages").update({"is_read": not msg["is_read"]}).eq("id", id).execute()
-        flash("Updated.", "success")
+        flash("Message status updated!", "success")
     except Exception as e:
+        print(f"❌ Toggle message error: {e}")
         flash("Error updating message.", "error")
     return redirect(url_for("admin_messages"))
 
@@ -567,9 +683,14 @@ def toggle_message(id):
 @admin_required
 def mark_all_read():
     try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_messages"))
+        
         supabase.table("messages").update({"is_read": True}).neq("is_read", True).execute()
-        flash("All messages marked read.", "success")
+        flash("All messages marked as read!", "success")
     except Exception as e:
+        print(f"❌ Mark all read error: {e}")
         flash("Error marking messages as read.", "error")
     return redirect(url_for("admin_messages"))
 
@@ -589,31 +710,72 @@ def serve_script():
     if not os.path.exists(script_path):
         # Create a minimal script.js file
         with open(script_path, 'w') as f:
-            f.write('// JavaScript file\nconsole.log("Blog website loaded");')
+            f.write('''// JavaScript file
+console.log("Blog website loaded");
+
+// Basic form validation
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any client-side functionality here
+    console.log('Blog website initialized');
+});
+''')
     
     return send_from_directory(os.path.join(app.root_path, 'static'), 'script.js')
 
+
 # -------------------------------------------------------------
-# ERROR HANDLERS (FIXED - NO TEMPLATE DEPENDENCY)
+# ERROR HANDLERS
 # -------------------------------------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
     return '''
-    <h1>404 - Page Not Found</h1>
-    <p>The page you are looking for does not exist.</p>
-    <a href="/">Go Home</a>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>404 - Page Not Found</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>404 - Page Not Found</h1>
+        <p>The page you are looking for does not exist.</p>
+        <a href="/">Go Home</a>
+    </body>
+    </html>
     ''', 404
 
 @app.errorhandler(500)
 def internal_error(error):
     return '''
-    <h1>500 - Internal Server Error</h1>
-    <p>Something went wrong on our end. Please try again later.</p>
-    <a href="/">Go Home</a>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>500 - Internal Server Error</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong on our end. Please try again later.</p>
+        <a href="/">Go Home</a>
+    </body>
+    </html>
     ''', 500
+
 
 # -------------------------------------------------------------
 # RUN SERVER
 # -------------------------------------------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    print("🚀 Starting Flask application...")
+    print("✅ All routes and error handlers are configured")
+    print("📧 Admin creation route: /fix-admin")
+    print("🔑 Login route: /login")
+    print("⚡ Admin dashboard: /admin/dashboard")
+    app.run(debug=True, host='0.0.0.0', port=5000)
