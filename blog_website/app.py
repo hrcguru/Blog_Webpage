@@ -230,6 +230,22 @@ def view_category(category):
     return render_template("categories.html", posts=posts, category=category)
 
 
+# ADD THIS NEW ROUTE TO FIX THE CATEGORY_POSTS ERROR
+@app.route("/category_posts/<category_name>")
+@login_required
+def category_posts(category_name):
+    """Alternative category route that matches the template"""
+    posts = (
+        supabase.table("posts")
+        .select("*, users(username)")
+        .eq("category", category_name)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+    return render_template("categories.html", posts=posts, category=category_name)
+
+
 # -------------------------------------------------------------
 # CONTACT MESSAGE
 # -------------------------------------------------------------
@@ -384,6 +400,8 @@ def mark_all_read():
     supabase.table("messages").update({"is_read": True}).neq("is_read", True).execute()
     flash("All messages marked read.", "success")
     return redirect(url_for("admin_messages"))
+
+
 # -------------------------------------------------------------
 # RUN SERVER
 # -------------------------------------------------------------
