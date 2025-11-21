@@ -109,6 +109,24 @@ def index():
     return render_template("index.html", posts=posts)
 
 
+@app.route("/about")
+def about():
+    """About page route - FIXES THE ERROR"""
+    # You can fetch about content from database or use static content
+    about_posts = (
+        supabase.table("posts")
+        .select("*, users(username)")
+        .eq("category", "AboutMe")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    
+    about_post = about_posts[0] if about_posts else None
+    return render_template("about.html", about_post=about_post)
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -366,11 +384,8 @@ def mark_all_read():
     supabase.table("messages").update({"is_read": True}).neq("is_read", True).execute()
     flash("All messages marked read.", "success")
     return redirect(url_for("admin_messages"))
-
-
 # -------------------------------------------------------------
 # RUN SERVER
 # -------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
-
