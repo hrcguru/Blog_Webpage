@@ -329,6 +329,25 @@ def contact():
 
 
 # -------------------------------------------------------------
+# USER MESSAGES ROUTE (FIXES THE MISSING ROUTE)
+# -------------------------------------------------------------
+@app.route("/view_messages")
+@login_required
+def view_messages():
+    """User messages route - fixes the missing endpoint"""
+    try:
+        # For regular users, show their own messages or a simplified view
+        if session.get("is_admin"):
+            return redirect(url_for("admin_messages"))
+        else:
+            # For regular users, show a simple message page
+            return render_template("user_messages.html")
+    except Exception as e:
+        flash("Error loading messages.", "error")
+        return redirect(url_for("index"))
+
+
+# -------------------------------------------------------------
 # ADMIN FIX ROUTE (TEMPORARY - REMOVE AFTER USE)
 # -------------------------------------------------------------
 @app.route("/fix-admin")
@@ -575,15 +594,23 @@ def serve_script():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'script.js')
 
 # -------------------------------------------------------------
-# ERROR HANDLERS
+# ERROR HANDLERS (FIXED - NO TEMPLATE DEPENDENCY)
 # -------------------------------------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('404.html'), 404
+    return '''
+    <h1>404 - Page Not Found</h1>
+    <p>The page you are looking for does not exist.</p>
+    <a href="/">Go Home</a>
+    ''', 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return render_template('500.html'), 500
+    return '''
+    <h1>500 - Internal Server Error</h1>
+    <p>Something went wrong on our end. Please try again later.</p>
+    <a href="/">Go Home</a>
+    ''', 500
 
 # -------------------------------------------------------------
 # RUN SERVER
