@@ -169,7 +169,7 @@
     </footer>
 
     <script>
-    // Mobile Navigation Toggle
+    // Mobile Navigation Toggle - FIXED VERSION
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const navMenu = document.getElementById('navMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
@@ -185,12 +185,14 @@
     mobileMenuBtn.addEventListener('click', toggleMobileMenu);
     mobileOverlay.addEventListener('click', toggleMobileMenu);
 
-    // Close mobile menu when clicking on links (EXCEPT logout)
+    // Close mobile menu when clicking on regular links (NOT logout)
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
-            // Don't close menu for logout links - let them redirect immediately
-            if (link.classList.contains('logout-btn') || link.getAttribute('href') === '{{ url_for("logout") }}') {
-                return; // Let the logout happen without closing menu first
+            // Skip logout links - let them work normally
+            if (link.classList.contains('logout-btn') || 
+                link.getAttribute('href') === '{{ url_for("logout") }}' ||
+                link.closest('.logout-btn')) {
+                return; // Let logout happen without closing menu first
             }
             
             if (window.innerWidth <= 968) {
@@ -199,17 +201,17 @@
         });
     });
 
-    // Special handling for logout in user dropdown
-    document.querySelectorAll('.logout-btn').forEach(logoutLink => {
+    // Special handling for logout links
+    document.querySelectorAll('.logout-btn, a[href*="logout"]').forEach(logoutLink => {
         logoutLink.addEventListener('click', (e) => {
-            // Let the logout happen normally - don't prevent default
+            // For logout, close mobile menu immediately and let the redirect happen
             if (window.innerWidth <= 968) {
-                // Close mobile menu immediately when logout is clicked
                 mobileMenuBtn.classList.remove('active');
                 navMenu.classList.remove('active');
                 mobileOverlay.classList.remove('active');
                 document.body.classList.remove('menu-open');
             }
+            // Let the browser follow the link normally
         });
     });
 
@@ -243,7 +245,6 @@
             navbar.classList.remove('scrolled');
         }
 
-        // Hide/show navbar on scroll
         if (window.scrollY > lastScrollY && window.scrollY > 100) {
             navbar.classList.add('hide');
         } else {
@@ -259,10 +260,6 @@
             mobileMenuBtn.classList.remove('active');
             mobileOverlay.classList.remove('active');
             document.body.classList.remove('menu-open');
-            // Close all dropdowns on desktop resize
-            document.querySelectorAll('.dropdown, .user-dropdown').forEach(dropdown => {
-                dropdown.classList.remove('active');
-            });
         }
     }
 
@@ -270,4 +267,5 @@
 </script>
 </body>
 </html>
+
 
