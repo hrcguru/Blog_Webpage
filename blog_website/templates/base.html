@@ -169,80 +169,105 @@
     </footer>
 
     <script>
-        // Mobile Navigation Toggle
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const navMenu = document.getElementById('navMenu');
-        const mobileOverlay = document.getElementById('mobileOverlay');
-        const navbar = document.getElementById('navbar');
+    // Mobile Navigation Toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navMenu = document.getElementById('navMenu');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const navbar = document.getElementById('navbar');
 
-        function toggleMobileMenu() {
-            mobileMenuBtn.classList.toggle('active');
-            navMenu.classList.toggle('active');
-            mobileOverlay.classList.toggle('active');
-            document.body.classList.toggle('menu-open');
-        }
+    function toggleMobileMenu() {
+        mobileMenuBtn.classList.toggle('active');
+        navMenu.classList.toggle('active');
+        mobileOverlay.classList.toggle('active');
+        document.body.classList.toggle('menu-open');
+    }
 
-        mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-        mobileOverlay.addEventListener('click', toggleMobileMenu);
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    mobileOverlay.addEventListener('click', toggleMobileMenu);
 
-        // Close mobile menu when clicking on links
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 968) {
-                    toggleMobileMenu();
-                }
-            });
-        });
-
-        // Dropdown functionality
-        document.querySelectorAll('.dropdown-toggle, .user-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function(e) {
-                if (window.innerWidth <= 968) {
-                    e.preventDefault();
-                    const dropdown = this.parentElement;
-                    dropdown.classList.toggle('active');
-                }
-            });
-        });
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.matches('.dropdown-toggle') && !e.target.matches('.user-toggle')) {
-                document.querySelectorAll('.dropdown, .user-dropdown').forEach(dropdown => {
-                    dropdown.classList.remove('active');
-                });
+    // Close mobile menu when clicking on links (EXCEPT logout)
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            // Don't close menu for logout links - let them redirect immediately
+            if (link.classList.contains('logout-btn') || link.getAttribute('href') === '{{ url_for("logout") }}') {
+                return; // Let the logout happen without closing menu first
+            }
+            
+            if (window.innerWidth <= 968) {
+                toggleMobileMenu();
             }
         });
+    });
 
-        // Navbar scroll effect
-        let lastScrollY = window.scrollY;
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 100) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-
-            // Hide/show navbar on scroll
-            if (window.scrollY > lastScrollY && window.scrollY > 100) {
-                navbar.classList.add('hide');
-            } else {
-                navbar.classList.remove('hide');
-            }
-            lastScrollY = window.scrollY;
-        });
-
-        // Responsive dropdown handling
-        function handleResize() {
-            if (window.innerWidth > 968) {
-                navMenu.classList.remove('active');
+    // Special handling for logout in user dropdown
+    document.querySelectorAll('.logout-btn').forEach(logoutLink => {
+        logoutLink.addEventListener('click', (e) => {
+            // Let the logout happen normally - don't prevent default
+            if (window.innerWidth <= 968) {
+                // Close mobile menu immediately when logout is clicked
                 mobileMenuBtn.classList.remove('active');
+                navMenu.classList.remove('active');
                 mobileOverlay.classList.remove('active');
                 document.body.classList.remove('menu-open');
             }
+        });
+    });
+
+    // Dropdown functionality
+    document.querySelectorAll('.dropdown-toggle, .user-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            if (window.innerWidth <= 968) {
+                e.preventDefault();
+                const dropdown = this.parentElement;
+                dropdown.classList.toggle('active');
+            }
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('.dropdown-toggle') && !e.target.matches('.user-toggle') &&
+            !e.target.closest('.dropdown-toggle') && !e.target.closest('.user-toggle')) {
+            document.querySelectorAll('.dropdown, .user-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        }
+    });
+
+    // Navbar scroll effect
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 100) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
         }
 
-        window.addEventListener('resize', handleResize);
-    </script>
+        // Hide/show navbar on scroll
+        if (window.scrollY > lastScrollY && window.scrollY > 100) {
+            navbar.classList.add('hide');
+        } else {
+            navbar.classList.remove('hide');
+        }
+        lastScrollY = window.scrollY;
+    });
+
+    // Responsive dropdown handling
+    function handleResize() {
+        if (window.innerWidth > 968) {
+            navMenu.classList.remove('active');
+            mobileMenuBtn.classList.remove('active');
+            mobileOverlay.classList.remove('active');
+            document.body.classList.remove('menu-open');
+            // Close all dropdowns on desktop resize
+            document.querySelectorAll('.dropdown, .user-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        }
+    }
+
+    window.addEventListener('resize', handleResize);
+</script>
 </body>
 </html>
+
