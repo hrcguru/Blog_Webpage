@@ -5,45 +5,90 @@
 {% block content %}
 <div class="messages-container">
     <div class="messages-header">
-        <h1><i class="fas fa-envelope"></i> Contact Messages</h1>
-        <p>Manage messages from your website visitors</p>
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="header-text">
+                <h1>Contact Messages</h1>
+                <p>Manage messages from your website visitors</p>
+            </div>
+        </div>
     </div>
 
     {% if messages %}
     <div class="messages-stats">
         <div class="stat-card">
-            <i class="fas fa-inbox"></i>
-            <h3>Total Messages</h3>
-            <p>{{ messages|length }}</p>
+            <div class="stat-icon total">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Messages</h3>
+                <p class="stat-number">{{ messages|length }}</p>
+            </div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-envelope-open"></i>
-            <h3>Unread</h3>
-            <p>{{ messages|selectattr('is_read', 'equalto', False)|list|length }}</p>
+            <div class="stat-icon unread">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Unread Messages</h3>
+                <p class="stat-number">{{ messages|selectattr('is_read', 'equalto', False)|list|length }}</p>
+            </div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-trash"></i>
-            <h3>Actions</h3>
-            <form action="{{ url_for('mark_all_messages_read') }}" method="POST" class="inline-form">
-                <button type="submit" class="btn-link">Mark All Read</button>
-            </form>
+            <div class="stat-icon action">
+                <i class="fas fa-cog"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Quick Actions</h3>
+                <form action="{{ url_for('mark_all_messages_read') }}" method="POST" class="inline-form">
+                    <button type="submit" class="btn-action">
+                        <i class="fas fa-check-double"></i> Mark All Read
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="messages-filters">
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All Messages</button>
+            <button class="filter-btn" data-filter="unread">Unread Only</button>
+            <button class="filter-btn" data-filter="read">Read Only</button>
+        </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="messageSearch" placeholder="Search messages...">
         </div>
     </div>
 
     <div class="messages-list">
         {% for message in messages %}
-        <div class="message-card {% if not message.is_read %}unread{% endif %}">
+        <div class="message-card {% if not message.is_read %}unread{% endif %}" 
+             data-read="{{ 'false' if not message.is_read else 'true' }}"
+             data-content="{{ message.name.lower() }} {{ message.email.lower() }} {{ message.message.lower() }}">
             <div class="message-header">
+                <div class="message-avatar">
+                    {{ message.name[0]|upper }}
+                </div>
                 <div class="message-sender">
-                    <h3>{{ message.name }}</h3>
+                    <h3 class="sender-name">{{ message.name }}</h3>
                     <span class="message-email">{{ message.email }}</span>
                 </div>
                 <div class="message-meta">
-                    <span class="message-date">{{ message.created_at[:16] }}</span>
+                    <span class="message-date">
+                        <i class="fas fa-clock"></i>
+                        {{ message.created_at[:16] }}
+                    </span>
                     {% if not message.is_read %}
-                    <span class="message-status new">NEW</span>
+                    <span class="message-status new">
+                        <i class="fas fa-circle"></i> NEW
+                    </span>
                     {% else %}
-                    <span class="message-status read">READ</span>
+                    <span class="message-status read">
+                        <i class="fas fa-check-circle"></i> READ
+                    </span>
                     {% endif %}
                 </div>
             </div>
@@ -54,32 +99,539 @@
             
             <div class="message-actions">
                 <form action="{{ url_for('toggle_message_read', message_id=message.id) }}" method="POST" class="inline-form">
-                    <button type="submit" class="btn btn-sm {% if message.is_read %}btn-warning{% else %}btn-success{% endif %}">
+                    <button type="submit" class="btn btn-action {% if message.is_read %}mark-unread{% else %}mark-read{% endif %}">
                         <i class="fas {% if message.is_read %}fa-envelope{% else %}fa-envelope-open{% endif %}"></i>
                         {% if message.is_read %}Mark as Unread{% else %}Mark as Read{% endif %}
                     </button>
                 </form>
                 
                 <form action="{{ url_for('delete_message', message_id=message.id) }}" method="POST" class="inline-form">
-                    <button type="submit" class="btn btn-sm btn-danger" 
+                    <button type="submit" class="btn btn-action delete" 
                             onclick="return confirm('Are you sure you want to delete this message?')">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </form>
+
+                <a href="mailto:{{ message.email }}?subject=Re: Your message to Upgrade Daily" class="btn btn-action reply">
+                    <i class="fas fa-reply"></i> Reply
+                </a>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
     <div class="no-messages">
-        <i class="fas fa-inbox"></i>
-        <h3>No Messages Yet</h3>
-        <p>You haven't received any contact messages yet.</p>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h3>No Messages Yet</h3>
+            <p>You haven't received any contact messages yet. Check back later!</p>
+            <div class="empty-actions">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>
 
 <style>
+/* Messages Container */
+.messages-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
 
+/* Header Styles */
+.messages-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.header-icon {
+    font-size: 3rem;
+    opacity: 0.9;
+}
+
+.header-text h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.header-text p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Stats Cards */
+.messages-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-icon.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-icon.unread { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stat-icon.action { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+.stat-content h3 {
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0;
+}
+
+.btn-action {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Filters */
+.messages-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    gap: 0.5rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.filter-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.filter-btn:not(.active):hover {
+    background: var(--light);
+}
+
+.search-box {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    min-width: 250px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-light);
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    padding-left: 2rem;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+/* Message Cards */
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.message-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.message-card.unread {
+    border-left-color: var(--primary);
+    background: linear-gradient(90deg, rgba(46, 139, 87, 0.05) 0%, rgba(255, 255, 255, 1) 30%);
+}
+
+.message-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.message-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.message-sender h3 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-dark);
+    font-size: 1.2rem;
+}
+
+.message-email {
+    color: var(--primary-light);
+    font-size: 0.9rem;
+}
+
+.message-meta {
+    margin-left: auto;
+    text-align: right;
+}
+
+.message-date {
+    display: block;
+    color: var(--primary-light);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.message-date i {
+    margin-right: 0.25rem;
+}
+
+.message-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.message-status.new {
+    background: #fff0f0;
+    color: #e74c3c;
+}
+
+.message-status.read {
+    background: #f0fff4;
+    color: #27ae60;
+}
+
+.message-status i {
+    font-size: 0.5rem;
+    margin-right: 0.25rem;
+}
+
+.message-content {
+    margin-bottom: 1.5rem;
+}
+
+.message-content p {
+    color: var(--text-dark);
+    line-height: 1.6;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.message-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.message-actions .btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn.mark-read {
+    background: var(--success);
+    color: white;
+}
+
+.btn.mark-unread {
+    background: var(--warning);
+    color: white;
+}
+
+.btn.delete {
+    background: var(--danger);
+    color: white;
+}
+
+.btn.reply {
+    background: var(--info);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Empty State */
+.no-messages {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.empty-state {
+    text-align: center;
+    max-width: 400px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: var(--primary-light);
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    color: var(--primary-light);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .messages-container {
+        padding: 1rem;
+    }
+    
+    .messages-header {
+        padding: 2rem 1rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .messages-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .messages-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        justify-content: center;
+    }
+    
+    .search-box {
+        min-width: auto;
+    }
+    
+    .message-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .message-meta {
+        margin-left: 0;
+        text-align: center;
+    }
+    
+    .message-actions {
+        justify-content: center;
+    }
+    
+    .message-card {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .message-actions {
+        flex-direction: column;
+    }
+    
+    .message-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const messageCards = document.querySelectorAll('.message-card');
+    const searchInput = document.getElementById('messageSearch');
+    
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active button
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.dataset.filter;
+            filterMessages(filter);
+        });
+    });
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filterMessages('all', searchTerm);
+    });
+    
+    function filterMessages(filter, searchTerm = '') {
+        messageCards.forEach(card => {
+            const isRead = card.dataset.read === 'true';
+            const content = card.dataset.content;
+            const matchesSearch = content.includes(searchTerm);
+            let shouldShow = matchesSearch;
+            
+            if (filter === 'unread') {
+                shouldShow = shouldShow && !isRead;
+            } else if (filter === 'read') {
+                shouldShow = shouldShow && isRead;
+            }
+            
+            if (shouldShow) {
+                card.style.display = 'block';
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 50);
+            } else {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.display = 'none';
+                }, 300);
+            }
+        });
+    }
+    
+    // Add some animation to cards
+    messageCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'all 0.5s ease';
+        
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
 {% endblock %}
