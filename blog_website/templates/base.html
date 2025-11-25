@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Upgrade Daily{% endblock %}</title>
+    <title>{% block title %}Blogs by Hritik{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Halant:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="{{ url_for('index') }}" class="nav-logo">
-                <i class="fas fa-brain"></i> Upgrade Daily
+                <img src="{{ url_for('static', filename='images/Blogs by Hritik.jpg') }}" alt="Blogs by Hritik" class="logo-image">
             </a>
             
             <div class="nav-menu" id="navMenu">
@@ -193,4 +193,5 @@
 </script>
 </body>
 </html>
+
 
