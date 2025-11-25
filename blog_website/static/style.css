@@ -1963,3 +1963,66 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.5rem;
 }
+/* Logo Image Styles - Clean and Properly Aligned */
+.logo-image {
+    height: 45px; /* Optimal height for navigation */
+    width: auto;
+    object-fit: contain; /* Maintain aspect ratio */
+    display: block;
+    transition: transform 0.3s ease;
+    background: transparent; /* Remove any background */
+    border: none; /* Remove borders */
+    padding: 5px 0; /* Vertical padding for proper alignment */
+}
+
+.logo-image:hover {
+    transform: scale(1.05);
+}
+
+/* Footer logo */
+.footer-logo {
+    height: 35px;
+    width: auto;
+    object-fit: contain;
+    background: transparent;
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* Update nav-logo for perfect image alignment */
+.nav-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    height: 100%;
+    padding: 8px 0; /* Proper vertical centering */
+}
+
+/* Ensure navbar container has proper spacing */
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px; /* Fixed height for consistent alignment */
+    padding: 0 20px;
+}
+
+/* Responsive logo adjustments */
+@media (max-width: 768px) {
+    .logo-image {
+        height: 40px; /* Slightly smaller on mobile */
+        padding: 3px 0;
+    }
+    
+    .nav-container {
+        height: 60px; /* Adjust navbar height for mobile */
+        padding: 0 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-image {
+        height: 35px;
+    }
+}
+
