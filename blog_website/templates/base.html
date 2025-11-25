@@ -57,7 +57,7 @@
                     <i class="fas fa-envelope"></i> Contact
                 </a>
                 
-                <!-- User Section -->
+                <!-- User Section - FIXED: Direct logout button -->
                 <div class="nav-user-section">
                     {% if session.user_id %}
                         {% if session.is_admin %}
@@ -71,16 +71,10 @@
                                 {% endif %}
                             </a>
                         {% endif %}
-                        <div class="user-dropdown">
-                            <a href="#" class="nav-link user-toggle">
-                                <i class="fas fa-user-circle"></i> {{ session.username }} <i class="fas fa-chevron-down dropdown-arrow"></i>
-                            </a>
-                            <div class="dropdown-content user-dropdown-content">
-                                <a href="{{ url_for('logout') }}" class="logout-btn">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a>
-                            </div>
-                        </div>
+                        <!-- DIRECT LOGOUT BUTTON - NO DROPDOWN -->
+                        <a href="{{ url_for('logout') }}" class="nav-link logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout ({{ session.username }})
+                        </a>
                     {% else %}
                         <a href="{{ url_for('login') }}" class="nav-link login-btn">
                             <i class="fas fa-sign-in-alt"></i> Login
@@ -198,6 +192,3 @@
 </script>
 </body>
 </html>
-
-
-
