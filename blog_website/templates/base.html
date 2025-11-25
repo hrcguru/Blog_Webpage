@@ -65,7 +65,7 @@
                             <a href="{{ url_for('admin_dashboard') }}" class="nav-link admin-btn">
                                 <i class="fas fa-tachometer-alt"></i> Admin
                             </a>
-                            <a href="{{ url_for('view_messages') }}" class="nav-link messages-btn">
+                            <a href="{{ url_for('admin_messages') }}" class="nav-link messages-btn">
                                 <i class="fas fa-envelope"></i> Messages
                                 {% if unread_count > 0 %}
                                 <span class="message-badge">{{ unread_count }}</span>
@@ -121,7 +121,7 @@
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-section">
-                <h3><i class="fas fa-brain"></i> Upgrade Daily</h3>
+                <h3><img src="{{ url_for('static', filename='images/Blogs by Hritik.jpg') }}" alt="Blogs by Hritik" class="footer-logo"></h3>
                 <p>Exploring knowledge across multiple domains including science, technology, culture, and spirituality.</p>
                 <div class="social-links">
                     <a href="https://www.linkedin.com/in/hrjain365/" target="_blank" title="LinkedIn">
@@ -159,7 +159,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 Upgrade Daily. All rights reserved. | Built with <i class="fas fa-heart"></i> for knowledge seekers</p>
+            <p>&copy; 2025 Blogs by Hritik. All rights reserved. | Built with <i class="fas fa-heart"></i> for knowledge seekers</p>
         </div>
     </footer>
 
@@ -193,5 +193,3 @@
 </script>
 </body>
 </html>
-
-
