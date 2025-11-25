@@ -1953,3 +1953,13 @@ h1, h2, h3, h4, h5, h6 {
         justify-content: center;
     }
 }
+.nav-logo {
+    font-family: 'Halant', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
