@@ -169,11 +169,10 @@
     </footer>
 
     <script>
-    // Mobile Navigation Toggle - FIXED VERSION
+    // Ultra Simple Mobile Navigation - No link interference
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const navMenu = document.getElementById('navMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
-    const navbar = document.getElementById('navbar');
 
     function toggleMobileMenu() {
         mobileMenuBtn.classList.toggle('active');
@@ -185,87 +184,20 @@
     mobileMenuBtn.addEventListener('click', toggleMobileMenu);
     mobileOverlay.addEventListener('click', toggleMobileMenu);
 
-    // Close mobile menu when clicking on regular links (NOT logout)
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            // Skip logout links - let them work normally
-            if (link.classList.contains('logout-btn') || 
-                link.getAttribute('href') === '{{ url_for("logout") }}' ||
-                link.closest('.logout-btn')) {
-                return; // Let logout happen without closing menu first
-            }
-            
-            if (window.innerWidth <= 968) {
-                toggleMobileMenu();
-            }
-        });
-    });
-
-    // Special handling for logout links
-    document.querySelectorAll('.logout-btn, a[href*="logout"]').forEach(logoutLink => {
-        logoutLink.addEventListener('click', (e) => {
-            // For logout, close mobile menu immediately and let the redirect happen
-            if (window.innerWidth <= 968) {
-                mobileMenuBtn.classList.remove('active');
-                navMenu.classList.remove('active');
-                mobileOverlay.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            }
-            // Let the browser follow the link normally
-        });
-    });
-
-    // Dropdown functionality
-    document.querySelectorAll('.dropdown-toggle, .user-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-            if (window.innerWidth <= 968) {
-                e.preventDefault();
-                const dropdown = this.parentElement;
-                dropdown.classList.toggle('active');
-            }
-        });
-    });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.matches('.dropdown-toggle') && !e.target.matches('.user-toggle') &&
-            !e.target.closest('.dropdown-toggle') && !e.target.closest('.user-toggle')) {
-            document.querySelectorAll('.dropdown, .user-dropdown').forEach(dropdown => {
-                dropdown.classList.remove('active');
-            });
-        }
-    });
-
-    // Navbar scroll effect
-    let lastScrollY = window.scrollY;
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 100) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-
-        if (window.scrollY > lastScrollY && window.scrollY > 100) {
-            navbar.classList.add('hide');
-        } else {
-            navbar.classList.remove('hide');
-        }
-        lastScrollY = window.scrollY;
-    });
-
-    // Responsive dropdown handling
-    function handleResize() {
+    // Let ALL links work normally - no JavaScript interference
+    
+    // Only handle resize to close menu on desktop
+    window.addEventListener('resize', function() {
         if (window.innerWidth > 968) {
             navMenu.classList.remove('active');
             mobileMenuBtn.classList.remove('active');
             mobileOverlay.classList.remove('active');
             document.body.classList.remove('menu-open');
         }
-    }
-
-    window.addEventListener('resize', handleResize);
+    });
 </script>
 </body>
 </html>
+
 
 
