@@ -104,8 +104,7 @@
                         {% if message.is_read %}Mark as Unread{% else %}Mark as Read{% endif %}
                     </button>
                 </form>
-                
-                <form action="{{ url_for('delete_message', message_id=message.id) }}" method="POST" class="inline-form">
+                <form action="{{ url_for('delete_message', id=message.id) }}" method="POST" class="inline-form">
                     <button type="submit" class="btn btn-action delete" 
                             onclick="return confirm('Are you sure you want to delete this message?')">
                         <i class="fas fa-trash"></i> Delete
@@ -635,3 +634,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
