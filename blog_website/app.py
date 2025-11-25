@@ -637,7 +637,7 @@ def delete_post(id):
     return redirect(url_for("admin_dashboard"))
 
 # -------------------------------------------------------------
-# ADMIN — MESSAGES
+# ADMIN — MESSAGES (COMPLETE MESSAGE MANAGEMENT)
 # -------------------------------------------------------------
 @app.route("/admin/messages")
 @admin_required
@@ -665,6 +665,50 @@ def delete_message(id):
     except Exception as e:
         print(f"❌ Delete message error: {e}")
         flash("Error deleting message.", "error")
+    return redirect(url_for("admin_messages"))
+
+# ADD THESE MISSING MESSAGE ROUTES:
+@app.route("/admin/messages/<int:message_id>/toggle-read", methods=["POST"])
+@admin_required
+def toggle_message_read(message_id):
+    """Toggle message read status"""
+    try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_messages"))
+        
+        # Get current message status
+        message_response = supabase.table("messages").select("is_read").eq("id", message_id).execute()
+        if not message_response.data:
+            flash("Message not found.", "error")
+            return redirect(url_for("admin_messages"))
+        
+        current_status = message_response.data[0]["is_read"]
+        
+        # Toggle the status
+        supabase.table("messages").update({"is_read": not current_status}).eq("id", message_id).execute()
+        
+        status_text = "read" if not current_status else "unread"
+        flash(f"Message marked as {status_text}!", "success")
+    except Exception as e:
+        print(f"❌ Toggle message read error: {e}")
+        flash("Error updating message status.", "error")
+    return redirect(url_for("admin_messages"))
+
+@app.route("/admin/messages/mark-all-read", methods=["POST"])
+@admin_required
+def mark_all_messages_read():
+    """Mark all messages as read"""
+    try:
+        if not supabase:
+            flash("Database connection error.", "error")
+            return redirect(url_for("admin_messages"))
+        
+        supabase.table("messages").update({"is_read": True}).execute()
+        flash("All messages marked as read!", "success")
+    except Exception as e:
+        print(f"❌ Mark all messages read error: {e}")
+        flash("Error updating messages.", "error")
     return redirect(url_for("admin_messages"))
 
 # -------------------------------------------------------------
@@ -749,6 +793,7 @@ if __name__ == "__main__":
     print("   /admin/dashboard - Admin dashboard")
     print("   /admin/create-post - Create new post")
     print("   /admin/edit-post/<id> - Edit post")
+    print("   /admin/messages - View messages")
     print("   /debug/posts - Debug posts data")
     print("   /debug/users - Debug users data")
     
